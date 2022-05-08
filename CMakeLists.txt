@@ -3,4 +3,4 @@ project(CamelUp C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(CamelUp main.c CamelUpTypesAndUtils.h)
+add_executable(CamelUp CamelUp.c CamelUpTypesAndUtils.h)

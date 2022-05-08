@@ -1,1 +1,1 @@
-gcc main.c -o test.exe
+gcc CamelUp.c -o test.exe
