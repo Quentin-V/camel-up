@@ -32,6 +32,10 @@ PariCourse ** parisCourse; // Tableau de pointeurs sur PariCourse (tableau pas e
 // ***** Utilitaires choix de l'action joueur *****
 // ************************************************
 
+/**
+ * Affiche le menu de sélection d'action et attend l'entrée de l'utilisateur
+ * @return le choix de l'utilisateur entre 1 et 4
+ */
 int choisirAction() {
 	printf("Choisis une action parmi les suivantes:\n");
 	printf("\t- 1 : Prendre une tuile pyramide et faire avancer un chameau\n");
@@ -40,13 +44,19 @@ int choisirAction() {
 	printf("\t- 4 : (Dé)placer la tuile Désert\n");
 	printf("Ton choix : ");
 	int action;
-	while(scanf("%d", &action) == 0 || action < 1 || action > 4) { // Tant que la saisie n'est pas valide
+	while(scanf_s("%d", &action) == 0 || action < 1 || action > 4) { // Tant que la saisie n'est pas valide
 		printf("Choix invalide, choisis une action entre 1 et 4 : ");
 		clearInputBuffer();
 	}
 	return action; // On retourne l'action choisie
 }
 
+/**
+ * Permet de savoir si l'action choisie est valide
+ * @param action l'action choisie
+ * @param parieur le joueur qui a choisi l'action
+ * @return vrai si le joueur peut effectuer l'action, faux sinon
+ */
 bool actionValide(int action, Parieur parieur) {
 	return true; // TODO : Cette fonction
 }
@@ -68,7 +78,7 @@ void prendreTuilePyramide(Parieur parieur) {
 	int valeurDe = (rand() % 3) + 1; // Chiffre aléatoire entre 1 et 3
 	pyramide[randCouleur] = false; // On sort le dé de la pyramide
 	chameaux[randCouleur].position += valeurDe; // On fait avancer le chameau
-	printf("Le dé %s est sorti de la pyramide avec une valeure de %d\n", couleurs[randCouleur], valeurDe);
+	printf("Le dé %s est sorti de la pyramide avec une valeur de %d\n", couleurs[randCouleur], valeurDe);
 }
 
 /**
@@ -97,18 +107,18 @@ void pariManche(Parieur parieur) {
 	}
 	printf("Quel est ton choix : ");
 	int choix;
-	// Tant que saisie incohérente ou     hors des bornes             ou qu'il n'y a plus de tuiles
-	while(scanf("%d", &choix) == 0 || choix < 1 || choix > NB_COULEUR || tuilesParis[choix-1] < 1) {
+	//      Tant que saisie incohérente     ou     hors des bornes             ou qu'il n'y a plus de tuiles
+	while(scanf_s("%d", &choix) == 0 || choix < 1 || choix > NB_COULEUR || tuilesParis[choix-1] < 1) {
 		printf("Choix invalide, choisis une tuile parmi les disponibles : ");
 		clearInputBuffer();
 	}
-	--choix; // On enlève 1 à choix car l'utilisateur a saisi entre 1 et 5 et on veut entre 0 et 4
+	--choix; // On enlève 1 à choix, car l'utilisateur a saisi entre 1 et 5 et on veut entre 0 et 4
 	parieur.parisManche[parieur.nbParisManche++] = &(PariManche) {
 		.valeurPari = tuilesParis[choix] == 3 ? 5 : tuilesParis[choix],
 		.couleur = choix
 	};
-	--tuilesParis[choix]; // On retire 1 tuile de pari de la couleur choisie
-	printf("Pari sur le chameau %s pour une valeur de %d enregistré\n", couleurs[choix], tuilesParis[choix]+1 == 3 ? 5 : tuilesParis[choix] + 1);
+	printf("Pari sur le chameau %s pour une valeur de %d enregistré\n", couleurs[choix], tuilesParis[choix] == 3 ? 5 : tuilesParis[choix]);
+    --tuilesParis[choix]; // On retire une tuile de pari de la couleur choisie
 }
 
 /**
@@ -122,15 +132,15 @@ void pariCourse(Parieur parieur) {
 	printf("Ton choix : ");
 	int choix;
 	// Tant que saisie incohérente ou     hors des bornes             ou qu'il n'y a plus de tuiles
-	while(scanf("%d", &choix) == 0 || choix < 1 || choix > NB_COULEUR || !parieur.tuilesPariCourse[choix]) {
+	while(scanf_s("%d", &choix) == 0 || choix < 1 || choix > NB_COULEUR || !parieur.tuilesPariCourse[choix]) {
 		printf("Choix invalide, choisis une tuile parmi les disponibles : ");
 		clearInputBuffer();
 	}
-	--choix; // On enlève 1 à choix car l'utilisateur a saisi entre 1 et 5 et on veut entre 0 et 4
+	--choix; // On enlève 1 à choix, car l'utilisateur a saisi entre 1 et 5 et on veut entre 0 et 4
 	printf("Penses-tu que le chameau %s va gagner ou perdre la course?\n", couleurs[choix]);
 	printf("Ton choix (G/P) : ");
 	char choixGagnerPerdre;
-	while(scanf("%c", &choixGagnerPerdre) == 0 || // Tant que saisie incohérente ou que
+	while(scanf_s("%c", &choixGagnerPerdre) == 0 || // Tant que saisie incohérente ou que
 		(choixGagnerPerdre != 'G' && choixGagnerPerdre != 'g' && // le choix est différent de G ou P
 		 choixGagnerPerdre != 'P' && choixGagnerPerdre != 'p')) {
 		printf("Choix invalide,tape G pour un pari de victoire et P pour un pari de défaite : ");
@@ -152,19 +162,24 @@ void pariCourse(Parieur parieur) {
 	printf("Pari de course de %s enregistré", parieur.nom);
 }
 
+/**
+ * Permet de savoir si la position de la tuile désert est correcte
+ * @param position la position demandée pour la tuile désert
+ * @return true si la position est valide, faux sinon
+ */
 bool validePositionDesert(int position) {
 	return true; // TODO : Cette fonction
 }
 
 /**
- * Permet à un joueur d eplacer sa tuile désert
+ * Permet à un joueur déplacer sa tuile désert
  * @param parieur le joueur qui pose sa tuile
  */
 void placerTuileDesert(Parieur parieur) {
 	printf("%s, où souhaites-tu placer ta tuile désert ?\n", parieur.nom);
 	printf("Ton choix : ");
 	int choixPosition;
-	while(scanf("%d", &choixPosition) == 0 || !validePositionDesert(choixPosition)) {
+	while(scanf_s("%d", &choixPosition) == 0 || !validePositionDesert(choixPosition)) {
 		printf("Position invalide, choisis une position valide : ");
 		clearInputBuffer();
 	}
@@ -173,7 +188,7 @@ void placerTuileDesert(Parieur parieur) {
 	printf("De quel côté veux-tu placer ta tuile désert ?\n");
 	printf("Mirage ou Oasis (M/O) : ");
 	char choixCote;
-	while(scanf("%c", &choixCote) == 0 || (choixCote != 'M' && choixCote != 'm' && choixCote != 'O' && choixCote != 'o'))  {
+	while(scanf_s("%c", &choixCote) == 0 || (choixCote != 'M' && choixCote != 'm' && choixCote != 'O' && choixCote != 'o'))  {
 		printf("Choix invalide, tape M pour le côté mirage et O pour le côté oasis : ");
 		clearInputBuffer();
 	}
@@ -224,7 +239,7 @@ void tour(Parieur parieur) {
  * Fonction qui reset les variables pour le début des manches
  */
 void debutManche() {
-	// On remet tous les dés dans la pyramide)
+	// On remet tous les dés dans la pyramide
 	for(int i = 0; i < NB_COULEUR; ++i) {
 		pyramide[i] = true; // On remet le dé dans la pyramide
 		tuilesParis[i] = 3; // 3 tuiles de paris de chaque au début de manche
@@ -245,55 +260,97 @@ void finManche() {
 	}
 }
 
+/**
+ * Permet de savoir si la manche en cours est terminée
+ * S'il n'y a plus de dés dans la pyramide, la manche est terminée
+ * @return true si la manche est terminée, faux sinon
+ */
 bool mancheEstTerminee() {
-	return false; // TODO : Cette fonction
+    return !pyramide[0] && !pyramide[1] && !pyramide[2] && !pyramide[3] && !pyramide[4];
 }
 
+/**
+ * Permet de savoir si la partie est terminée
+ * Si un chameau a dépassé la case 16, la partie est finie
+ * @return vrai si la partie est terminée, faux sinon
+ */
 bool partieEstFinie() {
-	return false; // TODO : Cette fonction
+	for(int i = 0; i < NB_COULEUR; ++i)
+        if(chameaux[i].position > 16) return true;
+    return false;
 }
 
+/**
+ * Fonction qui demande le nombre de joueurs
+ * et qui l'affecte à la variable globale
+ */
+void demandeNombreJoueurs() {
+    printf("Veuillez entrer le nombre de joueurs (Entre 3 et 8) : ");
+    // Tant que le scanf est incohérent ou que la valeur entrée n'est pas entre 3 et 8
+    while(scanf_s("%d", &nbJoueurs) == 0 || !(nbJoueurs >= 3 && nbJoueurs <= 8)) {
+        printf("Saisie invalide, veuillez saisir un nombre entre 3 et 8 : ");
+        clearInputBuffer(); // Au cas où la saisie est invalide
+    }
+    fgetc(stdin); // Traiter le \n restant du buffer après la dernière saisie
+    printf("La partie se déroulera avec %d joueurs\n", nbJoueurs);
+}
+
+/**
+ * Fonction qui initialise les joueurs
+ */
+void initialiserJoueurs() {
+    // Initialisation des joueurs
+    parieurs = malloc(nbJoueurs * sizeof(Parieur));
+    for(int i = 0; i < nbJoueurs; ++i) {
+        printf("Entrer le nom du joueur %d (20 caractères maximum) : ", i+1); // Demande du nom
+        // fgets → Comme scanf avec des restrictions
+        //  var d'affectation | taille maximale input | input
+        fgets(parieurs[i].nom, sizeof(parieurs[i].nom), stdin);
+        if(!containsLineBreak(parieurs[i].nom)) clearInputBuffer(); // Clear le buffer si nécessaire
+        replaceLineBreak(parieurs[i].nom, '\0'); // Enlève le retour à la ligne du nom du joueur
+        parieurs[i].or = 3;
+        parieurs[i].tuilesPyramide = 0;
+        parieurs[i].nbParisManche = 0;
+        for(int j = 0; j < NB_COULEUR; ++j) parieurs[i].tuilesPariCourse[j] = true;
+        parieurs[i].tuileDesert = (TuileDesert) { // Initialisation de la tuile désert
+                .position = -1,
+                .coteOasis = true
+        };
+    }
+}
+
+/**
+ * Fonction qui initialise les chameaux
+ */
+void initialiserChameaux() {
+    // Initialisation des chameaux
+    for(int i = 0; i < NB_COULEUR; ++i) {
+        chameaux[i].position = 0;
+        chameaux[i].chameauSurLeDos = NULL;
+        chameaux[i].couleur = &couleurs[i];
+    }
+}
+
+/**
+ * Fonction qui initialise les paris course
+ */
+void initialiserParisCourse() {
+    parisCourse = malloc(nbJoueurs * NB_COULEUR * sizeof(PariCourse)); // Le tableau pourra contenir 5 paris course par joueur au maximum
+    for(int i = 0; i < nbJoueurs * NB_COULEUR; ++i) parisCourse[i] = NULL;
+}
+
+/**
+ * Fonction principale qui gère le jeu
+ * @return 0 si tout va bien
+ */
 int main() {
 	srand(time(NULL)); // On définit la seed du random (point de départ de la fonction random) pour les dés etc...
 
-	printf("Veuillez entrer le nombre de joueurs (Entre 3 et 8) : ");
-	// Tant que le scanf est incohérent ou que la valeur entrée n'est pas entre 3 et 8
-	while(scanf("%d", &nbJoueurs) == 0 || !(nbJoueurs >= 3 && nbJoueurs <= 8)) {
-		printf("Saisie invalide, veuillez saisir un nombre entre 3 et 8 : ");
-		clearInputBuffer(); // Au cas où la saisie est invalide
-	}
-	fgetc(stdin); // Traiter le \n restant du buffer après la dernière saisie
-	printf("La partie se déroulera avec %d joueurs\n", nbJoueurs);
+	demandeNombreJoueurs();
 
-	// Initialisation des joueurs
-	parieurs = malloc(nbJoueurs * sizeof(Parieur));
-	for(int i = 0; i < nbJoueurs; ++i) {
-		printf("Entrer le nom du joueur %d (20 caractères maximum) : ", i+1); // Demande du nom
-		// fgets --> Comme scanf avec des restrictions
-		//  var d'affectation | taille maximale input | input
-		fgets(parieurs[i].nom, sizeof(parieurs[i].nom), stdin);
-		if(!containsLineBreak(parieurs[i].nom)) clearInputBuffer(); // Clear le buffer si nécessaire
-		removeLineBreak(parieurs[i].nom); // Enlève le retour à la ligne du nom du joueur
-		parieurs[i].or = 3;
-		parieurs[i].tuilesPyramide = 0;
-		parieurs[i].nbParisManche = 0;
-		for(int j = 0; j < NB_COULEUR; ++j) parieurs[i].tuilesPariCourse[j] = true;
-		parieurs[i].tuileDesert = (TuileDesert) { // Initialisation de la tuile désert
-			.position = -1,
-			.coteOasis = true
-		};
-	}
-
-	// Initialisation des chameaux
-	for(int i = 0; i < NB_COULEUR; ++i) {
-		chameaux[i].position = 0;
-		chameaux[i].chameauSurLeDos = NULL;
-		chameaux[i].couleur = &couleurs[i];
-	}
-
-	// Initialisation des paris course
-	parisCourse = malloc(nbJoueurs * NB_COULEUR * sizeof(PariCourse)); // Le tableau poura contenir 5 paris course par joueur au maximum
-	for(int i = 0; i < nbJoueurs * NB_COULEUR; ++i) parisCourse[i] = NULL;
+    initialiserJoueurs();
+    initialiserChameaux();
+    initialiserParisCourse();
 
 	// Boucle de partie
 	int compteurTour = rand()%nbJoueurs; // Choix aléatoire du premier joueur
