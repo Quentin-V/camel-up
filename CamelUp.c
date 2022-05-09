@@ -2,47 +2,16 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
+#include <string.h>
 
 #define NB_COULEUR 5 // Nombre de couleurs / chameaux
+#define TAILLE_PLATEAU 16// Nombre de cases sur le plateau
 
 #include "CamelUpTypesAndUtils.h"
 
-// Plateau
-const char* plateau = "                             _____________________________________________\n"
-                      "                            /        /        /        /        /        /\n"
-                      "                           /        /        /        /        /        /\n"
-                      "                          /        /        /        /        /        /\n"
-                      "                         /        /        /        /        /        /\n"
-                      "                        /        /        /        /        /        /\n"
-                      "                       /--------/--------------------------/--------/\n"
-                      "                      /        /   12        13      14   /        /\n"
-                      "                     /        /                          /        /\n"
-                      "                    /        /10                      16/        /\n"
-                      "                   /        /                          /        /\n"
-                      "                  /        /                          /        /\n"
-                      "                 /--------/                          /--------/\n"
-                      "                /        /                          /        /\n"
-                      "               /        /                          /        /\n"
-                      "              /        /9                        1/        /\n"
-                      "             /        /                          /        /\n"
-                      "            /        /                          /        /\n"
-                      "           /--------/                          /--------/\n"
-                      "          /        /                          /        /\n"
-                      "         /        /                          /        /\n"
-                      "        /        /8                        2/        /\n"
-                      "       /        /                          /        /\n"
-                      "      /        /   6       5        4     /        /\n"
-                      "     /--------/--------------------------/--------/\n"
-                      "    /        /        /        /        /        /\n"
-                      "   /        /        /        /        /        /\n"
-                      "  /        /        /        /        /        /\n"
-                      " /        /        /        /        /        /\n"
-                      "/        /        /        /        /        /\n"
-                      "---------------------------------------------";
-
 // Tableau utile pour les couleurs
 const char * couleurs[NB_COULEUR] = {
-	"blanc",
+	"Blanc",
 	"jaune",
 	"orange",
 	"bleu",
@@ -60,6 +29,7 @@ int tuilesParis[NB_COULEUR]; // Le nombre de tuiles de pari manche de chaque cou
 Chameau chameaux[NB_COULEUR]; // Déclaration des chameaux
 Parieur * parieurs; // Pointeur sur Parieur (tableau dynamique contenant les joueurs)
 PariCourse ** parisCourse; // Tableau de pointeurs sur PariCourse (tableau pas encore alloué qui contiendra les paris de course de la partie)
+Case casesPlateau[TAILLE_PLATEAU];
 
 // ************************************************
 // ***** Utilitaires choix de l'action joueur *****
@@ -105,10 +75,10 @@ bool actionValide(int action, Parieur parieur) {
  * @param chameau le chameau qui bouge
  * @param position la nouvelle case
  */
-void arriverChameauDessus(Chameau chameau, int position) {
+void arriverChameauDessus(Chameau * chameau, int position) {
 	Chameau * chameauSurMemeCase = NULL;
 	for(int i = 0; i < NB_COULEUR; ++i) { // On essaie de trouver un chameau sur la case d'arrivée
-		if(&chameaux[i] == &chameau) continue; // Ne pas effectuer la boucle sur le chameau qui bouge
+		if(&chameaux[i] == chameau) continue; // Ne pas effectuer la boucle sur le chameau qui bouge
 		if(chameaux[i].position == position) {
 			chameauSurMemeCase = &chameaux[i];
 			break; // On a trouvé un chameau, on peut sortie de la boucle
@@ -116,8 +86,8 @@ void arriverChameauDessus(Chameau chameau, int position) {
 	}
 	if(chameauSurMemeCase == NULL) return; // Si la case d'arrivée est vide, pas besoin de monter sur un chameau
 	Chameau * chameauDuHaut = trouverChameauDuHaut(chameauSurMemeCase);
-	chameauDuHaut->chameauSurLeDos = &chameau;
-	chameau.chameauDessous = chameauDuHaut;
+	chameauDuHaut->chameauSurLeDos = chameau;
+	chameau->chameauDessous = chameauDuHaut;
 }
 
 /**
@@ -127,11 +97,11 @@ void arriverChameauDessus(Chameau chameau, int position) {
  * @param chameau le chameau qui bouge
  * @param position la nouvelle case
  */
-void arriverChameauDessous(Chameau chameau, int position) {
+void arriverChameauDessous(Chameau * chameau, int position) {
 	Chameau * chameauSurMemeCase = NULL;
 	for(int i = 0; i < NB_COULEUR; ++i) {
 		// Ne pas faire la boucle sur le chameau qui bouge ou si le chameau n'est pas sur la même case
-		if(&chameaux[i] == &chameau) continue;
+		if(&chameaux[i] == chameau) continue;
 		if(chameaux[i].position == position) {
 			chameauSurMemeCase = &chameaux[i];
 			break; // On a trouvé un chameau on peut sortir de la boucle
@@ -139,7 +109,7 @@ void arriverChameauDessous(Chameau chameau, int position) {
 	}
 	// On fait passer notre pile de chameaux au dessous des chameaux sur la case d'arrivée
 	Chameau * chameauDuBas = trouverChameauDuBas(chameauSurMemeCase);
-	Chameau * chameauDuHautPileCourante = trouverChameauDuHaut(&chameau);
+	Chameau * chameauDuHautPileCourante = trouverChameauDuHaut(chameau);
 	chameauDuBas->chameauDessous = chameauDuHautPileCourante;
 	chameauDuHautPileCourante->chameauSurLeDos = chameauDuBas;
 }
@@ -159,39 +129,39 @@ void prendreTuilePyramide(Parieur parieur) {
 	int valeurDe = (rand() % 3) + 1; // Chiffre aléatoire entre 1 et 3
 	pyramide[randCouleur] = false; // On sort le dé de la pyramide
 
-	Chameau chameauQuiBouge = chameaux[randCouleur];
-	int anciennePosition = chameauQuiBouge.position;
+	Chameau * chameauQuiBouge = &chameaux[randCouleur];
+	int anciennePosition = chameauQuiBouge->position;
 
 	// Retirer notre chameau du dos d'un chameau s'il est dessus
-	if(chameauQuiBouge.chameauDessous != NULL) {
-		Chameau * chameauDessous = chameauQuiBouge.chameauDessous;
+	if(chameauQuiBouge->chameauDessous != NULL) {
+		Chameau * chameauDessous = chameauQuiBouge->chameauDessous;
 		chameauDessous->chameauSurLeDos = NULL;
-		chameauQuiBouge.chameauDessous = NULL;
+		chameauQuiBouge->chameauDessous = NULL;
 	}
 
-	chameauQuiBouge.position += valeurDe; // On fait avancer le chameau
+	chameauQuiBouge->position += valeurDe; // On fait avancer le chameau
 
 	// Faire monter le chameau sur les autres s'il arrive sur une case déjà occupée
-	arriverChameauDessus(chameauQuiBouge, chameauQuiBouge.position);
+	arriverChameauDessus(chameauQuiBouge, chameauQuiBouge->position);
 
 	// On gère le cas où on arrive sur une tuile désert
 	// On ne peut pas retomber sur une tuile désert après, car elles ne peuvent pas être placées côte à côte
 	for(int i = 0; i < nbJoueurs; ++i) {
-		if(parieurs[i].tuileDesert.position != chameauQuiBouge.position) continue; // Si le chameau n'est pas sur la tuile, on passe à la suivante
+		if(parieurs[i].tuileDesert.position != chameauQuiBouge->position) continue; // Si le chameau n'est pas sur la tuile, on passe à la suivante
 		TuileDesert tuileDesert = parieurs[i].tuileDesert;
 		++parieurs[i].or; // On donne 1 d'or au joueur à qui appartient la tuile
 		if(tuileDesert.coteOasis) { // Côté Oasis de la tuile désert
-			++chameauQuiBouge.position;
-			arriverChameauDessus(chameauQuiBouge, chameauQuiBouge.position);
+			++chameauQuiBouge->position;
+			arriverChameauDessus(chameauQuiBouge, chameauQuiBouge->position);
 		}else { // Côté Mirage de la tuile désert
-			--chameauQuiBouge.position;
-			arriverChameauDessous(chameauQuiBouge, chameauQuiBouge.position);
+			--chameauQuiBouge->position;
+			arriverChameauDessous(chameauQuiBouge, chameauQuiBouge->position);
 		}
 	}
 
-	if(anciennePosition != chameauQuiBouge.position) { // Si on a pas changé de position, pas besoin
+	if(anciennePosition != chameauQuiBouge->position) { // Si on a pas changé de position, pas besoin
 		// On n'oublie pas de faire avancer les chameaux qu'on a sur le dos
-		Chameau * chameauCourant = &chameauQuiBouge;
+		Chameau * chameauCourant = chameauQuiBouge;
 		while(chameauCourant->chameauSurLeDos != NULL) {
 			chameauCourant->chameauSurLeDos->position = chameauCourant->position;
 			chameauCourant = chameauCourant->chameauSurLeDos;
@@ -256,6 +226,7 @@ void pariCourse(Parieur parieur) {
 		printf("Choix invalide, choisis une tuile parmi les disponibles : ");
 		clearInputBuffer();
 	}
+	fgetc(stdin); // Traiter le '\n' restant
 	--choix; // On enlève 1 à choix, car l'utilisateur a saisi entre 1 et 5 et on veut entre 0 et 4
 	printf("Penses-tu que le chameau %s va gagner ou perdre la course?\n", couleurs[choix]);
 	printf("Ton choix (G/P) : ");
@@ -266,6 +237,7 @@ void pariCourse(Parieur parieur) {
 		printf("Choix invalide,tape G pour un pari de victoire et P pour un pari de défaite : ");
 		clearInputBuffer();
 	}
+	fgetc(stdin); // Traiter le '\n' restant
 
 	parieur.tuilesPariCourse[choix] = false; // On retire la tuile de pari au joueur
 	PariCourse pc = (PariCourse) { // On crée le pari de course
@@ -279,7 +251,7 @@ void pariCourse(Parieur parieur) {
 			break; // On sort du for
 		}
 	}
-	printf("Pari de course de %s enregistré", parieur.nom);
+	printf("Pari de course de %s enregistré\n", parieur.nom);
 }
 
 /**
@@ -335,7 +307,6 @@ void placerTuileDesert(Parieur parieur) {
  * @param parieur le joueur qui joue son tour
  */
 void tour(Parieur parieur) {
-	printf("%s\n", plateau);
 	printf("C'est au tour de %s!\n", parieur.nom);
 	int action;
 	do {
@@ -474,19 +445,47 @@ void initialiserParisCourse() {
 }
 
 /**
+ * Initialise la plateau de jeu
+ */
+void initialiserPlateau() {
+	for(int i = 0; i < TAILLE_PLATEAU; ++i) {
+		Case c = (Case) {
+				.lignes = {
+						malloc(9 * sizeof(char)),
+						malloc(9 * sizeof(char)),
+						malloc(9 * sizeof(char)),
+						malloc(9 * sizeof(char)),
+						malloc(9 * sizeof(char))
+				}
+		};
+		// On met toutes les lignes à des lignes vides pour commencer
+		for(int j = 0; j < NB_COULEUR; ++j) sprintf(c.lignes[j], "%9s", ligneVide);
+		casesPlateau[i] = c;
+	}
+}
+
+/**
  * Effectue toutes les actions nécessaires au début de la partie
  */
 void debutDePartie() {
 	for(int i = 0; i < NB_COULEUR; ++i) {
-		chameaux[i].position = rand()%3 ; // On place le chameau au hasard entre la case 1 et 3 (position 0 à 2)
-		for(int j = i-1; j > 0; --j) { // On vérifie s'il y a déjà un chameau sur la case
+		chameaux[i].position = rand() % 3 ; // On place le chameau au hasard entre la case 1 et 3 (position 0 à 2)
+		for(int j = i-1; j >= 0; --j) { // On vérifie s'il y a déjà un chameau sur la case
 			// Si les chameaux ne sont pas sur la même case, on continue
 			if(chameaux[j].position != chameaux[i].position) continue;
 
-			if(rand()%2 == 0) // On pose aléatoirement le premier ou deuxième chameau sur le dos de l'autre
-				chameaux[i].chameauSurLeDos = &chameaux[j];
-			else
-				chameaux[j].chameauSurLeDos = &chameaux[i];
+			bool vaDessus = rand() % 2 == 0;
+			if(vaDessus) { // On pose aléatoirement le nouveau chameau par dessus ou en dessous du groupe de chameau sur la case
+				Chameau * chameauDuHaut = trouverChameauDuHaut(&chameaux[j]);
+				chameauDuHaut->chameauSurLeDos = &chameaux[i];
+				chameaux[i].chameauDessous = chameauDuHaut;
+				break;
+			}else {
+				Chameau * chameauDuBas = trouverChameauDuBas(&chameaux[j]);
+				chameauDuBas->chameauDessous = &chameaux[i];
+				chameaux[i].chameauSurLeDos = chameauDuBas;
+				break;
+			}
 		}
 	}
 }
@@ -496,6 +495,9 @@ void debutDePartie() {
  * @return 0 si tout va bien
  */
 int main() {
+	// Permet d'afficher les unicodes et accents etc...
+	system("chcp 65001");
+
 	srand(time(NULL)); // On définit la seed du random (point de départ de la fonction random) pour les dés etc...
 
 	demandeNombreJoueurs();
@@ -503,6 +505,7 @@ int main() {
 	initialiserJoueurs();
 	initialiserChameaux();
 	initialiserParisCourse();
+	initialiserPlateau();
 
 	debutDePartie();
 
@@ -511,6 +514,8 @@ int main() {
 	while(!partieEstFinie()) { // partie pas finie
 		debutManche();
 		while(!mancheEstTerminee()) { // manche en cours
+			system("cls");
+			afficherPlateau();
 			tour(parieurs[compteurTour++%nbJoueurs]); // On fait le tour d'un joueur
 			printf("Appuyez sur entrée pour passer au tour suivant...");
 			fgetc(stdin);
@@ -519,4 +524,118 @@ int main() {
 	}
 
 	return 0;
+}
+
+// *********************************
+// ***** Fonctions d'affichage *****
+// *********************************
+
+/**
+ * Genère les lignes des cases pour l'affichage console
+ * @param position la position, de la case à générer
+ */
+Case genererCase(int position) {
+	Case c = casesPlateau[position];
+
+	int nbChameauxSurCase = 0;
+	Chameau * chameauBasDeCase = NULL;
+	TuileDesert * tuileSurCase = NULL;
+	for(int i = 0; i < NB_COULEUR; ++i) {
+		if(chameaux[i].position == position) { // Si un chameau est sur la position
+			// On affecte le chameau de bas de case au premier trouvé
+			if(chameauBasDeCase == NULL) chameauBasDeCase = &chameaux[i];
+			++nbChameauxSurCase;
+		}
+	}
+	for(int i = 0; i < nbJoueurs; ++i) {
+		if(parieurs[i].tuileDesert.position == position) { // Si une tuile désert est sur cette position
+			tuileSurCase = &parieurs[i].tuileDesert;
+			break;
+		}
+	}
+	if(tuileSurCase != NULL) { // Si la case a une tuile
+		sprintf(c.lignes[2], " %6s  ", tuileSurCase->coteOasis ? "Oasis" : "Mirage");
+		return c; // Pas besoin de faire les chameaux, car ils ne peuvent pas être sur la même case
+	}
+	// On vérifie que le chameau est bien celui du bas
+	chameauBasDeCase = trouverChameauDuBas(chameauBasDeCase);
+
+	// On vide les cases (car le contenu peut avoir changé)
+	for(int i = 0; i < NB_COULEUR; ++i) sprintf(c.lignes[i], "%9s", ligneVide);
+
+	switch (nbChameauxSurCase) {
+		case 1:
+			sprintf(c.lignes[2], ligneFormat, *chameauBasDeCase->couleur[0]);
+			break;
+		case 4:
+			sprintf(c.lignes[0], ligneFormat, *chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->chameauSurLeDos->couleur[0]);
+			// Pas de break, car on va exécuter les mêmes lignes que pour 3 et 2 chameaux
+		case 3:
+			sprintf(c.lignes[1], ligneFormat, *chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->couleur[0]);
+			// Pas de break, car on va exécuter les 2 mêmes lignes que pour 2 chameaux
+		case 2:
+			sprintf(c.lignes[2], ligneFormat, *chameauBasDeCase->chameauSurLeDos->couleur[0]);
+			sprintf(c.lignes[3], ligneFormat, *chameauBasDeCase->couleur[0]);
+			break;
+		case 5:
+			sprintf(c.lignes[0], ligneFormat, *chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->chameauSurLeDos->chameauSurLeDos->couleur[0]);
+			sprintf(c.lignes[1], ligneFormat, *chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->chameauSurLeDos->couleur[0]);
+			sprintf(c.lignes[2], ligneFormat, *chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->couleur[0]);
+			sprintf(c.lignes[3], ligneFormat, *chameauBasDeCase->chameauSurLeDos->couleur[0]);
+			sprintf(c.lignes[4], ligneFormat, *chameauBasDeCase->couleur[0]);
+			break;
+		default: break; // Normalement on devrait pas y arriver
+	}
+	return c;
+}
+
+void afficherPlateau() {
+	bool caseEstVide[TAILLE_PLATEAU];
+	for(int i = 0; i < TAILLE_PLATEAU; ++i) caseEstVide[i] = true;
+	for(int i = 0; i < NB_COULEUR; ++i) // On dit que la case à la position du chameau n'est pas vide
+		caseEstVide[chameaux[i].position] = false;
+	for(int i = 0; i < nbJoueurs; ++i) // Si la tuile est sur une case, alors cette case n'est pas vide
+		if(parieurs[i].tuileDesert.position != -1) caseEstVide[parieurs[i].tuileDesert.position] = false;
+
+	for(int i = 0; i < TAILLE_PLATEAU; ++i) {
+		if(caseEstVide[i]) casesPlateau[i] = caseVide;
+		else casesPlateau[i] = genererCase(i);
+	}
+
+	printf(formatPlateau,
+		   // 5 cases en haut du plateau (11 à 15)
+		   casesPlateau[10].lignes[0], casesPlateau[11].lignes[0], casesPlateau[12].lignes[0], casesPlateau[13].lignes[0], casesPlateau[14].lignes[0],
+		   casesPlateau[10].lignes[1], casesPlateau[11].lignes[1], casesPlateau[12].lignes[1], casesPlateau[13].lignes[1], casesPlateau[14].lignes[1],
+		   casesPlateau[10].lignes[2], casesPlateau[11].lignes[2], casesPlateau[12].lignes[2], casesPlateau[13].lignes[2], casesPlateau[14].lignes[2],
+		   casesPlateau[10].lignes[3], casesPlateau[11].lignes[3], casesPlateau[12].lignes[3], casesPlateau[13].lignes[3], casesPlateau[14].lignes[3],
+		   casesPlateau[10].lignes[4], casesPlateau[11].lignes[4], casesPlateau[12].lignes[4], casesPlateau[13].lignes[4], casesPlateau[14].lignes[4],
+
+		   // Cases 10 et 16
+		   casesPlateau[9].lignes[0], casesPlateau[15].lignes[0],
+		   casesPlateau[9].lignes[1], casesPlateau[15].lignes[1],
+		   casesPlateau[9].lignes[2], casesPlateau[15].lignes[2],
+		   casesPlateau[9].lignes[3], casesPlateau[15].lignes[3],
+		   casesPlateau[9].lignes[4], casesPlateau[15].lignes[4],
+
+		   // Cases 9 et 1
+		   casesPlateau[8].lignes[0], casesPlateau[0].lignes[0],
+		   casesPlateau[8].lignes[1], casesPlateau[0].lignes[1],
+		   casesPlateau[8].lignes[2], casesPlateau[0].lignes[2],
+		   casesPlateau[8].lignes[3], casesPlateau[0].lignes[3],
+		   casesPlateau[8].lignes[4], casesPlateau[0].lignes[4],
+
+		   // Cases 8 et 2
+		   casesPlateau[7].lignes[0], casesPlateau[1].lignes[0],
+		   casesPlateau[7].lignes[1], casesPlateau[1].lignes[1],
+		   casesPlateau[7].lignes[2], casesPlateau[1].lignes[2],
+		   casesPlateau[7].lignes[3], casesPlateau[1].lignes[3],
+		   casesPlateau[7].lignes[4], casesPlateau[1].lignes[4],
+
+		   // 5 Cases du bas (3 à 7)
+		   casesPlateau[6].lignes[0], casesPlateau[5].lignes[0], casesPlateau[4].lignes[0], casesPlateau[3].lignes[0], casesPlateau[2].lignes[0],
+		   casesPlateau[6].lignes[1], casesPlateau[5].lignes[1], casesPlateau[4].lignes[1], casesPlateau[3].lignes[1], casesPlateau[2].lignes[1],
+		   casesPlateau[6].lignes[2], casesPlateau[5].lignes[2], casesPlateau[4].lignes[2], casesPlateau[3].lignes[2], casesPlateau[2].lignes[2],
+		   casesPlateau[6].lignes[3], casesPlateau[5].lignes[3], casesPlateau[4].lignes[3], casesPlateau[3].lignes[3], casesPlateau[2].lignes[3],
+		   casesPlateau[6].lignes[4], casesPlateau[5].lignes[4], casesPlateau[4].lignes[4], casesPlateau[3].lignes[4], casesPlateau[2].lignes[4]
+		   );
 }

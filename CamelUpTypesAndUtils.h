@@ -4,6 +4,62 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+// ****************************************
+// ***** Utils pour affichage plateau *****
+// ****************************************
+
+/**
+ * Définit le format d'affichage du plateau
+ */
+const char * formatPlateau = "                             __________________________________________________\n"
+                             "                            /%9s/%9s/%9s/%9s/%9s/\n"
+                             "                           /%9s/%9s/%9s/%9s/%9s/\n"
+                             "                          /%9s/%9s/%9s/%9s/%9s/\n"
+                             "                         /%9s/%9s/%9s/%9s/%9s/\n"
+                             "                        /%9s/%9s/%9s/%9s/%9s/\n"
+                             "                       /---------/-----------------------------/---------/\n"
+                             "                      /%9s/    12        13        14   /%9s/\n"
+                             "                     /%9s/                             /%9s/\n"
+                             "                    /%9s/ 10                       16 /%9s/\n"
+                             "                   /%9s/                             /%9s/\n"
+                             "                  /%9s/                             /%9s/\n"
+                             "                 /---------/                             /░░░░░░░░░/\n"
+                             "                /%9s/                             /%9s/\n"
+                             "               /%9s/                             /%9s/\n"
+                             "              /%9s/ 9                         1 /%9s/\n"
+                             "             /%9s/                             /%9s/\n"
+                             "            /%9s/                             /%9s/\n"
+                             "           /---------/                             /---------/\n"
+                             "          /%9s/                             /%9s/\n"
+                             "         /%9s/                             /%9s/\n"
+                             "        /%9s/ 8                         2 /%9s/\n"
+                             "       /%9s/                             /%9s/\n"
+                             "      /%9s/    6        5         4     /%9s/\n"
+                             "     /---------/-----------------------------/---------/\n"
+                             "    /%9s/%9s/%9s/%9s/%9s/\n"
+                             "   /%9s/%9s/%9s/%9s/%9s/\n"
+                             "  /%9s/%9s/%9s/%9s/%9s/\n"
+                             " /%9s/%9s/%9s/%9s/%9s/\n"
+                             "/%9s/%9s/%9s/%9s/%9s/\n"
+                             "--------------------------------------------------\n";
+
+typedef struct Case {
+	char * lignes[5];
+} Case;
+
+Case const caseVide = {
+	.lignes = {
+		"         ",
+		"         ",
+		"         ",
+		"         ",
+		"         "
+	}
+};
+
+const char * ligneFormat = "    %c    ";
+const char * ligneVide = "         ";
+
 // *********************************
 // ***** Déclaration des types *****
 // *********************************
@@ -100,13 +156,6 @@ void clearInputBuffer() { // Permet de libérer le buffer de saisie
 	}while(ch != '\n' && ch != EOF); // Tant que ce n'est pas \n ou EOF (Fin de fichier)
 }
 
-bool inArray(int needle, const int * hayStack, int arraySize) {
-	for(int i = 0; i < arraySize; ++i) {
-		if(hayStack[i] == needle) return true;
-	}
-	return false;
-};
-
 Chameau * trouverChameauDuHaut(Chameau * chameau) {
 	Chameau * chameauDuHaut = chameau;
 	while(chameauDuHaut->chameauSurLeDos != NULL) chameauDuHaut = chameauDuHaut->chameauSurLeDos;
@@ -118,5 +167,7 @@ Chameau * trouverChameauDuBas(Chameau * chameau) {
 	while(chameauDuBas->chameauDessous != NULL) chameauDuBas = chameauDuBas->chameauDessous;
 	return chameauDuBas;
 }
+
+void afficherPlateau();
 
 #endif //CAMELUP_CAMELUPTYPESANDUTILS_H
