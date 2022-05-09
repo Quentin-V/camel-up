@@ -7,6 +7,39 @@
 
 #include "CamelUpTypesAndUtils.h"
 
+// Plateau
+const char* plateau = "                             _____________________________________________\n"
+                      "                            /        /        /        /        /        /\n"
+                      "                           /        /        /        /        /        /\n"
+                      "                          /        /        /        /        /        /\n"
+                      "                         /        /        /        /        /        /\n"
+                      "                        /        /        /        /        /        /\n"
+                      "                       /--------/--------------------------/--------/\n"
+                      "                      /        /   12        13      14   /        /\n"
+                      "                     /        /                          /        /\n"
+                      "                    /        /10                      16/        /\n"
+                      "                   /        /                          /        /\n"
+                      "                  /        /                          /        /\n"
+                      "                 /--------/                          /--------/\n"
+                      "                /        /                          /        /\n"
+                      "               /        /                          /        /\n"
+                      "              /        /9                        1/        /\n"
+                      "             /        /                          /        /\n"
+                      "            /        /                          /        /\n"
+                      "           /--------/                          /--------/\n"
+                      "          /        /                          /        /\n"
+                      "         /        /                          /        /\n"
+                      "        /        /8                        2/        /\n"
+                      "       /        /                          /        /\n"
+                      "      /        /   6       5        4     /        /\n"
+                      "     /--------/--------------------------/--------/\n"
+                      "    /        /        /        /        /        /\n"
+                      "   /        /        /        /        /        /\n"
+                      "  /        /        /        /        /        /\n"
+                      " /        /        /        /        /        /\n"
+                      "/        /        /        /        /        /\n"
+                      "---------------------------------------------";
+
 // Tableau utile pour les couleurs
 const char * couleurs[NB_COULEUR] = {
 	"blanc",
@@ -48,6 +81,7 @@ int choisirAction() {
 		printf("Choix invalide, choisis une action entre 1 et 4 : ");
 		clearInputBuffer();
 	}
+	fgetc(stdin); // Clear le '\n' restant du buffer
 	return action; // On retourne l'action choisie
 }
 
@@ -72,12 +106,18 @@ bool actionValide(int action, Parieur parieur) {
  * @param position la nouvelle case
  */
 void arriverChameauDessus(Chameau chameau, int position) {
-	for(int i = 0; i < NB_COULEUR; ++i) {
+	Chameau * chameauSurMemeCase = NULL;
+	for(int i = 0; i < NB_COULEUR; ++i) { // On essaie de trouver un chameau sur la case d'arrivée
 		if(&chameaux[i] == &chameau) continue; // Ne pas effectuer la boucle sur le chameau qui bouge
-		// Si le chameau arrive sur une case déjà occupée par un autre chameau, il monte sur la pile
-		if(chameaux[i].position == position && chameaux[i].chameauSurLeDos == NULL)
-			chameaux[i].chameauSurLeDos = &chameau;
+		if(chameaux[i].position == position) {
+			chameauSurMemeCase = &chameaux[i];
+			break; // On a trouvé un chameau, on peut sortie de la boucle
+		}
 	}
+	if(chameauSurMemeCase == NULL) return; // Si la case d'arrivée est vide, pas besoin de monter sur un chameau
+	Chameau * chameauDuHaut = trouverChameauDuHaut(chameauSurMemeCase);
+	chameauDuHaut->chameauSurLeDos = &chameau;
+	chameau.chameauDessous = chameauDuHaut;
 }
 
 /**
@@ -88,17 +128,20 @@ void arriverChameauDessus(Chameau chameau, int position) {
  * @param position la nouvelle case
  */
 void arriverChameauDessous(Chameau chameau, int position) {
-	Chameau * chameauDuDessous = NULL;
+	Chameau * chameauSurMemeCase = NULL;
 	for(int i = 0; i < NB_COULEUR; ++i) {
 		// Ne pas faire la boucle sur le chameau qui bouge ou si le chameau n'est pas sur la même case
-		if(&chameaux[i] == &chameau || chameaux[i].position != position) continue;
-		// Si on a pas encore de chameau du dessous ou si le chameau du dessous est sur le dos de celui-ci, on remplace le chameau du dessous
-		if(chameauDuDessous == NULL || chameauDuDessous == chameaux[i].chameauSurLeDos) chameauDuDessous = &chameaux[i];
+		if(&chameaux[i] == &chameau) continue;
+		if(chameaux[i].position == position) {
+			chameauSurMemeCase = &chameaux[i];
+			break; // On a trouvé un chameau on peut sortir de la boucle
+		}
 	}
 	// On fait passer notre pile de chameaux au dessous des chameaux sur la case d'arrivée
-	Chameau * chameauCourant = &chameau;
-	while(chameauCourant->chameauSurLeDos != NULL) chameauCourant = chameauCourant->chameauSurLeDos;
-	chameau.chameauSurLeDos = chameauDuDessous;
+	Chameau * chameauDuBas = trouverChameauDuBas(chameauSurMemeCase);
+	Chameau * chameauDuHautPileCourante = trouverChameauDuHaut(&chameau);
+	chameauDuBas->chameauDessous = chameauDuHautPileCourante;
+	chameauDuHautPileCourante->chameauSurLeDos = chameauDuBas;
 }
 
 /**
@@ -120,10 +163,10 @@ void prendreTuilePyramide(Parieur parieur) {
 	int anciennePosition = chameauQuiBouge.position;
 
 	// Retirer notre chameau du dos d'un chameau s'il est dessus
-	for(int i = 0; i < NB_COULEUR; ++i) {
-		if(i == randCouleur) continue; // Ne pas effectuer la boucle sur le chameau qui bouge
-		// On retire le chameau qui va bouger du dos d'un autre chameau s'il est dessus
-		if(chameaux[i].chameauSurLeDos == &chameauQuiBouge) chameaux[i].chameauSurLeDos = NULL;
+	if(chameauQuiBouge.chameauDessous != NULL) {
+		Chameau * chameauDessous = chameauQuiBouge.chameauDessous;
+		chameauDessous->chameauSurLeDos = NULL;
+		chameauQuiBouge.chameauDessous = NULL;
 	}
 
 	chameauQuiBouge.position += valeurDe; // On fait avancer le chameau
@@ -267,6 +310,7 @@ void placerTuileDesert(Parieur parieur) {
 		printf("Position invalide, choisis une position valide : ");
 		clearInputBuffer();
 	}
+	fgetc(stdin); // On traite le \n restant du buffer
 	choixPosition--; // Comme d'hab
 	parieur.tuileDesert.position = choixPosition;
 	printf("De quel côté veux-tu placer ta tuile désert ?\n");
@@ -276,6 +320,10 @@ void placerTuileDesert(Parieur parieur) {
 		printf("Choix invalide, tape M pour le côté mirage et O pour le côté oasis : ");
 		clearInputBuffer();
 	}
+
+	// On affecte le côté choisi de la carte
+	parieur.tuileDesert.coteOasis = choixCote == 'O' || choixCote == 'o';
+	printf("Tuile désert placée à la position %d sur le côté %s!\n", parieur.tuileDesert.position+1, parieur.tuileDesert.coteOasis ? "Oasis" : "Mirage");
 }
 
 // ****************************
@@ -287,6 +335,7 @@ void placerTuileDesert(Parieur parieur) {
  * @param parieur le joueur qui joue son tour
  */
 void tour(Parieur parieur) {
+	printf("%s\n", plateau);
 	printf("C'est au tour de %s!\n", parieur.nom);
 	int action;
 	do {
@@ -410,8 +459,9 @@ void initialiserJoueurs() {
 void initialiserChameaux() {
 	for(int i = 0; i < NB_COULEUR; ++i) {
 		chameaux[i].position = 0;
-		chameaux[i].chameauSurLeDos = NULL;
 		chameaux[i].couleur = &couleurs[i];
+		chameaux[i].chameauSurLeDos = NULL;
+		chameaux[i].chameauDessous = NULL;
 	}
 }
 
@@ -428,7 +478,7 @@ void initialiserParisCourse() {
  */
 void debutDePartie() {
 	for(int i = 0; i < NB_COULEUR; ++i) {
-		chameaux[i].position = rand()%3 + 1; // On place le chameau au hasard entre la case 1 et 3
+		chameaux[i].position = rand()%3 ; // On place le chameau au hasard entre la case 1 et 3 (position 0 à 2)
 		for(int j = i-1; j > 0; --j) { // On vérifie s'il y a déjà un chameau sur la case
 			// Si les chameaux ne sont pas sur la même case, on continue
 			if(chameaux[j].position != chameaux[i].position) continue;
@@ -462,6 +512,8 @@ int main() {
 		debutManche();
 		while(!mancheEstTerminee()) { // manche en cours
 			tour(parieurs[compteurTour++%nbJoueurs]); // On fait le tour d'un joueur
+			printf("Appuyez sur entrée pour passer au tour suivant...");
+			fgetc(stdin);
 		}
 		finManche();
 	}

@@ -16,6 +16,7 @@ typedef struct Chameau {
 	int position; // Position du chameau sur le plateau
 	const char ** couleur; // Chaine de caractère de la couleur du chameau
 	struct Chameau * chameauSurLeDos; // Pointeur sur le chameau qui est sur son dos s'il existe
+	struct Chameau * chameauDessous;
 } Chameau;
 
 /**
@@ -98,4 +99,24 @@ void clearInputBuffer() { // Permet de libérer le buffer de saisie
 		ch = fgetc(stdin); // Lis un caractère de l'input standard (le clavier)
 	}while(ch != '\n' && ch != EOF); // Tant que ce n'est pas \n ou EOF (Fin de fichier)
 }
+
+bool inArray(int needle, const int * hayStack, int arraySize) {
+	for(int i = 0; i < arraySize; ++i) {
+		if(hayStack[i] == needle) return true;
+	}
+	return false;
+};
+
+Chameau * trouverChameauDuHaut(Chameau * chameau) {
+	Chameau * chameauDuHaut = chameau;
+	while(chameauDuHaut->chameauSurLeDos != NULL) chameauDuHaut = chameauDuHaut->chameauSurLeDos;
+	return chameauDuHaut;
+}
+
+Chameau * trouverChameauDuBas(Chameau * chameau) {
+	Chameau * chameauDuBas = chameau;
+	while(chameauDuBas->chameauDessous != NULL) chameauDuBas = chameauDuBas->chameauDessous;
+	return chameauDuBas;
+}
+
 #endif //CAMELUP_CAMELUPTYPESANDUTILS_H
