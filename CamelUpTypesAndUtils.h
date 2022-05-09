@@ -47,16 +47,6 @@ typedef struct Case {
 	char * lignes[5];
 } Case;
 
-Case const caseVide = {
-	.lignes = {
-		"         ",
-		"         ",
-		"         ",
-		"         ",
-		"         "
-	}
-};
-
 const char * ligneFormat = "    %c    ";
 const char * ligneVide = "         ";
 
@@ -70,7 +60,7 @@ const char * ligneVide = "         ";
  */
 typedef struct Chameau {
 	int position; // Position du chameau sur le plateau
-	const char ** couleur; // Chaine de caractère de la couleur du chameau
+	int couleur; // Chaine de caractère de la couleur du chameau
 	struct Chameau * chameauSurLeDos; // Pointeur sur le chameau qui est sur son dos s'il existe
 	struct Chameau * chameauDessous;
 } Chameau;
@@ -120,7 +110,7 @@ typedef struct Parieur {
 typedef struct PariCourse {
 	int couleur;
 	bool victorieux;
-	Parieur parieur;
+	Parieur * parieur;
 } PariCourse;
 
 /**
@@ -166,6 +156,12 @@ Chameau * trouverChameauDuBas(Chameau * chameau) {
 	Chameau * chameauDuBas = chameau;
 	while(chameauDuBas->chameauDessous != NULL) chameauDuBas = chameauDuBas->chameauDessous;
 	return chameauDuBas;
+}
+
+void attendreInput(char * message) {
+	printf("%s", message);
+	int in = fgetc(stdin);
+	if(in != '\n') clearInputBuffer();
 }
 
 void afficherPlateau();

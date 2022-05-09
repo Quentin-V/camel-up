@@ -60,7 +60,7 @@ int choisirAction() {
  * @param parieur le joueur qui a choisi l'action
  * @return vrai si le joueur peut effectuer l'action, faux sinon
  */
-bool actionValide(int action, Parieur parieur) {
+bool actionValide(int action, Parieur * parieur) {
 	return true; // TODO : Cette fonction
 }
 
@@ -117,8 +117,8 @@ void arriverChameauDessous(Chameau * chameau, int position) {
  * Donne une tuile pyramide à un joueur et fait avancer un chameau
  * @param parieur le joueur qui tire la tuile pyramide
  */
-void prendreTuilePyramide(Parieur parieur) {
-	++parieur.tuilesPyramide; // On commence par donner une tuile pyramide au joueur
+void prendreTuilePyramide(Parieur * parieur) {
+	++parieur->tuilesPyramide; // On commence par donner une tuile pyramide au joueur
 
 	int randCouleur;
 	do { // On tire au sort la couleur du chameau qui va avancer
@@ -149,13 +149,17 @@ void prendreTuilePyramide(Parieur parieur) {
 		if(parieurs[i].tuileDesert.position != chameauQuiBouge->position) continue; // Si le chameau n'est pas sur la tuile, on passe à la suivante
 		TuileDesert tuileDesert = parieurs[i].tuileDesert;
 		++parieurs[i].or; // On donne 1 d'or au joueur à qui appartient la tuile
+		printf("Le chameau est tombé sur une tuile désert, %s gagne immédiatement une livre égyptienne\n", parieurs[i].nom);
 		if(tuileDesert.coteOasis) { // Côté Oasis de la tuile désert
 			++chameauQuiBouge->position;
 			arriverChameauDessus(chameauQuiBouge, chameauQuiBouge->position);
+			printf("Le chameau avance d'une case supplémentaire\n");
 		}else { // Côté Mirage de la tuile désert
 			--chameauQuiBouge->position;
 			arriverChameauDessous(chameauQuiBouge, chameauQuiBouge->position);
+			printf("Le chameau recule d'une case\n");
 		}
+		attendreInput("Appuyez sur entrée pour continuer...");
 	}
 
 	if(anciennePosition != chameauQuiBouge->position) { // Si on a pas changé de position, pas besoin
@@ -174,8 +178,8 @@ void prendreTuilePyramide(Parieur parieur) {
  * Permet à un parieur de parier sur le chameau gagnant de la manche en cours
  * @param parieur le joueur qui va parier sur un chameau
  */
-void pariManche(Parieur parieur) {
-	printf("%s, quelle tuile de pari veux-tu prendre:\n", parieur.nom);
+void pariManche(Parieur * parieur) {
+	printf("%s, quelle tuile de pari veux-tu prendre:\n", parieur->nom);
 	for(int i = 0; i < NB_COULEUR; ++i) {
 		printf("\t- %6s (%d), ", couleurs[i], i+1);
 		switch (tuilesParis[i]) {
@@ -202,7 +206,7 @@ void pariManche(Parieur parieur) {
 		clearInputBuffer();
 	}
 	--choix; // On enlève 1 à choix, car l'utilisateur a saisi entre 1 et 5 et on veut entre 0 et 4
-	parieur.parisManche[parieur.nbParisManche++] = &(PariManche) {
+	parieur->parisManche[parieur->nbParisManche++] = &(PariManche) {
 		.valeurPari = tuilesParis[choix] == 3 ? 5 : tuilesParis[choix],
 		.couleur = choix
 	};
@@ -214,14 +218,14 @@ void pariManche(Parieur parieur) {
  * Permet à un parieur de parier sur la victoire ou défaite d'un chameau à la course
  * @param parieur le joueur qui va parier sur le chameau
  */
-void pariCourse(Parieur parieur) {
-	printf("%s, sur quel chameau veux tu parier ?\n", parieur.nom);
+void pariCourse(Parieur * parieur) {
+	printf("%s, sur quel chameau veux tu parier ?\n", parieur->nom);
 	for(int i = 0; i < NB_COULEUR; ++i)
-		printf("\t - Chameau %-6s (%d) %s\n", couleurs[i], i+1, parieur.tuilesPariCourse[i] ? "" : "(Indisponible)");
+		printf("\t - Chameau %-6s (%d) %s\n", couleurs[i], i+1, parieur->tuilesPariCourse[i] ? "" : "(Indisponible)");
 	printf("Ton choix : ");
 	int choix;
-	// Tant que saisie incohérente ou     hors des bornes             ou qu'il n'y a plus de tuiles
-	while(scanf_s("%d", &choix) == 0 || choix < 1 || choix > NB_COULEUR || !parieur.tuilesPariCourse[choix]) {
+	// Tant que saisie incohérente          ou     hors des bornes             ou qu'il n'y a plus de tuiles
+	while(scanf_s("%d", &choix) == 0 || choix < 1 || choix > NB_COULEUR || !parieur->tuilesPariCourse[choix-1]) {
 		printf("Choix invalide, choisis une tuile parmi les disponibles : ");
 		clearInputBuffer();
 	}
@@ -238,7 +242,7 @@ void pariCourse(Parieur parieur) {
 	}
 	fgetc(stdin); // Traiter le '\n' restant
 
-	parieur.tuilesPariCourse[choix] = false; // On retire la tuile de pari au joueur
+	parieur->tuilesPariCourse[choix] = false; // On retire la tuile de pari au joueur
 	PariCourse pc = (PariCourse) { // On crée le pari de course
 		.parieur = parieur,
 		.couleur = choix,
@@ -250,7 +254,7 @@ void pariCourse(Parieur parieur) {
 			break; // On sort du for
 		}
 	}
-	printf("Pari de course de %s enregistré\n", parieur.nom);
+	printf("Pari de course de %s enregistré\n", parieur->nom);
 }
 
 /**
@@ -258,9 +262,10 @@ void pariCourse(Parieur parieur) {
  * @param position la position demandée pour la tuile désert
  * @return true si la position est valide, faux sinon
  */
-bool validePositionDesert(int position) {
-	if(position == 1) return false; // On ne peut pas poser en 1
+bool validePositionDesert(int position, Parieur * parieur) {
+	if(position == 0 || position > 15) return false; // On ne peut pas poser en 1 ni au dela du plateau
 	for(int i = 0; i < nbJoueurs; ++i) { // On teste les contraintes avec toutes les tuiles en place
+		if(&parieurs[i] == parieur) continue; // On ne vérifie pas sa propre tuile
 		TuileDesert tuileDesert = parieurs[i].tuileDesert;
 		if(tuileDesert.position == -1) continue; // Tuile pas posée
 		// Si on pose dans une case adjascente à la tuile en place (position-1 <= tuileDesert.position <= position+1)
@@ -273,17 +278,17 @@ bool validePositionDesert(int position) {
  * Permet à un joueur déplacer sa tuile désert
  * @param parieur le joueur qui pose sa tuile
  */
-void placerTuileDesert(Parieur parieur) {
-	printf("%s, où souhaites-tu placer ta tuile désert ?\n", parieur.nom);
+void placerTuileDesert(Parieur * parieur) {
+	printf("%s, où souhaites-tu placer ta tuile désert ?\n", parieur->nom);
 	printf("Ton choix : ");
 	int choixPosition;
-	while(scanf_s("%d", &choixPosition) == 0 || !validePositionDesert(choixPosition)) {
+	while(scanf_s("%d", &choixPosition) == 0 || !validePositionDesert(choixPosition-1, parieur)) {
 		printf("Position invalide, choisis une position valide : ");
 		clearInputBuffer();
 	}
 	fgetc(stdin); // On traite le \n restant du buffer
 	choixPosition--; // Comme d'hab
-	parieur.tuileDesert.position = choixPosition;
+	parieur->tuileDesert.position = choixPosition;
 	printf("De quel côté veux-tu placer ta tuile désert ?\n");
 	printf("Mirage ou Oasis (M/O) : ");
 	char choixCote;
@@ -291,10 +296,11 @@ void placerTuileDesert(Parieur parieur) {
 		printf("Choix invalide, tape M pour le côté mirage et O pour le côté oasis : ");
 		clearInputBuffer();
 	}
+	fgetc(stdin); // Comme d'hab
 
 	// On affecte le côté choisi de la carte
-	parieur.tuileDesert.coteOasis = choixCote == 'O' || choixCote == 'o';
-	printf("Tuile désert placée à la position %d sur le côté %s!\n", parieur.tuileDesert.position+1, parieur.tuileDesert.coteOasis ? "Oasis" : "Mirage");
+	parieur->tuileDesert.coteOasis = choixCote == 'O' || choixCote == 'o';
+	printf("Tuile désert placée à la position %d sur le côté %s!\n", parieur->tuileDesert.position+1, parieur->tuileDesert.coteOasis ? "Oasis" : "Mirage");
 }
 
 // ****************************
@@ -305,8 +311,8 @@ void placerTuileDesert(Parieur parieur) {
  * Démarre le tour d'un joueur
  * @param parieur le joueur qui joue son tour
  */
-void tour(Parieur parieur) {
-	printf("C'est au tour de %s!\n", parieur.nom);
+void tour(Parieur * parieur) {
+	printf("C'est au tour de %s!\n", parieur->nom);
 	int action;
 	do {
 		action = choisirAction();
@@ -358,10 +364,20 @@ void debutManche() {
  * Fonction qui s'exécute à la fin de la manche pour effectuer les actions de comptage des points
  */
 void finManche() {
+	printf("Fin de la manche!\n");
+	printf("Les joueurs gagnent une ligne égyptienne pour chaque tuile pyramide en leur possession");
+	printf("Résultat des paris : ");
 	for(int i = 0; i < nbJoueurs; ++i) {
+		// On donne une livre par tuile pyramide
 		parieurs[i].or += parieurs[i].tuilesPyramide;
 		parieurs[i].tuilesPyramide = 0;
+		// On calcule le résultat des paris
+		printf("\t%s : ", parieurs[i].nom);
+		for(int j = 0; j < parieurs[i].nbParisManche; ++j) {
+
+		}
 	}
+	attendreInput("Appuyez sur entrée pour passer à la manche suivante");
 }
 
 /**
@@ -429,7 +445,7 @@ void initialiserJoueurs() {
 void initialiserChameaux() {
 	for(int i = 0; i < NB_COULEUR; ++i) {
 		chameaux[i].position = 0;
-		chameaux[i].couleur = &couleurs[i];
+		chameaux[i].couleur = i;
 		chameaux[i].chameauSurLeDos = NULL;
 		chameaux[i].chameauDessous = NULL;
 	}
@@ -494,7 +510,6 @@ void debutDePartie() {
  * @return 0 si tout va bien
  */
 int main() {
-	setbuf(stdin, 0);
 	// Permet d'afficher les unicodes et accents etc...
 	system("chcp 65001");
 
@@ -516,9 +531,8 @@ int main() {
 		while(!mancheEstTerminee()) { // manche en cours
 			//system("cls");
 			afficherPlateau();
-			tour(parieurs[compteurTour++%nbJoueurs]); // On fait le tour d'un joueur
-			printf("Appuyez sur entrée pour passer au tour suivant...");
-			fgetc(stdin);
+			tour(&parieurs[compteurTour++%nbJoueurs]); // On fait le tour d'un joueur
+			attendreInput("Appuyez sur entrée pour passer au tour suivant...");
 		}
 		finManche();
 	}
@@ -535,12 +549,7 @@ int main() {
  * @param position la position, de la case à générer
  */
 Case genererCase(int position) {
-	Case c;
-	if(&casesPlateau[position] == &caseVide) {
-
-	}else {
-		c = casesPlateau[position];
-	}
+	Case c = casesPlateau[position];
 
 	int nbChameauxSurCase = 0;
 	Chameau * chameauBasDeCase = NULL;
@@ -570,24 +579,24 @@ Case genererCase(int position) {
 
 	switch (nbChameauxSurCase) {
 		case 1:
-			sprintf(c.lignes[2], ligneFormat, *chameauBasDeCase->couleur[0]);
+			sprintf(c.lignes[2], ligneFormat, couleurs[chameauBasDeCase->couleur][0]);
 			break;
 		case 4:
-			sprintf(c.lignes[0], ligneFormat, *chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->chameauSurLeDos->couleur[0]);
+			sprintf(c.lignes[0], ligneFormat, couleurs[chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->chameauSurLeDos->couleur][0]);
 			// Pas de break, car on va exécuter les mêmes lignes que pour 3 et 2 chameaux
 		case 3:
-			sprintf(c.lignes[1], ligneFormat, *chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->couleur[0]);
+			sprintf(c.lignes[1], ligneFormat, couleurs[chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->couleur][0]);
 			// Pas de break, car on va exécuter les 2 mêmes lignes que pour 2 chameaux
 		case 2:
-			sprintf(c.lignes[2], ligneFormat, *chameauBasDeCase->chameauSurLeDos->couleur[0]);
-			sprintf(c.lignes[3], ligneFormat, *chameauBasDeCase->couleur[0]);
+			sprintf(c.lignes[2], ligneFormat, couleurs[chameauBasDeCase->chameauSurLeDos->couleur][0]);
+			sprintf(c.lignes[3], ligneFormat, couleurs[chameauBasDeCase->couleur][0]);
 			break;
 		case 5:
-			sprintf(c.lignes[0], ligneFormat, *chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->chameauSurLeDos->chameauSurLeDos->couleur[0]);
-			sprintf(c.lignes[1], ligneFormat, *chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->chameauSurLeDos->couleur[0]);
-			sprintf(c.lignes[2], ligneFormat, *chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->couleur[0]);
-			sprintf(c.lignes[3], ligneFormat, *chameauBasDeCase->chameauSurLeDos->couleur[0]);
-			sprintf(c.lignes[4], ligneFormat, *chameauBasDeCase->couleur[0]);
+			sprintf(c.lignes[0], ligneFormat, couleurs[chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->chameauSurLeDos->chameauSurLeDos->couleur][0]);
+			sprintf(c.lignes[1], ligneFormat, couleurs[chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->chameauSurLeDos->couleur][0]);
+			sprintf(c.lignes[2], ligneFormat, couleurs[chameauBasDeCase->chameauSurLeDos->chameauSurLeDos->couleur][0]);
+			sprintf(c.lignes[3], ligneFormat, couleurs[chameauBasDeCase->chameauSurLeDos->couleur][0]);
+			sprintf(c.lignes[4], ligneFormat, couleurs[chameauBasDeCase->couleur][0]);
 			break;
 		default: break; // Normalement on devrait pas y arriver
 	}
