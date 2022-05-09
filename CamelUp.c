@@ -8,7 +8,7 @@
 #include "CamelUpTypesAndUtils.h"
 
 // Tableau utile pour les couleurs
-char * couleurs[NB_COULEUR] = {
+const char * couleurs[NB_COULEUR] = {
 	"blanc",
 	"jaune",
 	"orange",
@@ -66,18 +66,95 @@ bool actionValide(int action, Parieur parieur) {
 // *********************************
 
 /**
+ * Gère l'arrivée d'un chameau sur une case dans le cas
+ * où il arrive au dessus de la pile s'il y a déjà des chameaux
+ * @param chameau le chameau qui bouge
+ * @param position la nouvelle case
+ */
+void arriverChameauDessus(Chameau chameau, int position) {
+	for(int i = 0; i < NB_COULEUR; ++i) {
+		if(&chameaux[i] == &chameau) continue; // Ne pas effectuer la boucle sur le chameau qui bouge
+		// Si le chameau arrive sur une case déjà occupée par un autre chameau, il monte sur la pile
+		if(chameaux[i].position == position && chameaux[i].chameauSurLeDos == NULL)
+			chameaux[i].chameauSurLeDos = &chameau;
+	}
+}
+
+/**
+ * Gère l'arrivée d'un chameau sur une case après être tombé
+ * sur un mirage et donc il doit passer en dessous de la pile
+ * s'il y a déjà des chameaux sur la case
+ * @param chameau le chameau qui bouge
+ * @param position la nouvelle case
+ */
+void arriverChameauDessous(Chameau chameau, int position) {
+	Chameau * chameauDuDessous = NULL;
+	for(int i = 0; i < NB_COULEUR; ++i) {
+		// Ne pas faire la boucle sur le chameau qui bouge ou si le chameau n'est pas sur la même case
+		if(&chameaux[i] == &chameau || chameaux[i].position != position) continue;
+		// Si on a pas encore de chameau du dessous ou si le chameau du dessous est sur le dos de celui-ci, on remplace le chameau du dessous
+		if(chameauDuDessous == NULL || chameauDuDessous == chameaux[i].chameauSurLeDos) chameauDuDessous = &chameaux[i];
+	}
+	// On fait passer notre pile de chameaux au dessous des chameaux sur la case d'arrivée
+	Chameau * chameauCourant = &chameau;
+	while(chameauCourant->chameauSurLeDos != NULL) chameauCourant = chameauCourant->chameauSurLeDos;
+	chameau.chameauSurLeDos = chameauDuDessous;
+}
+
+/**
  * Donne une tuile pyramide à un joueur et fait avancer un chameau
  * @param parieur le joueur qui tire la tuile pyramide
  */
 void prendreTuilePyramide(Parieur parieur) {
-	++parieur.tuilesPyramide;
+	++parieur.tuilesPyramide; // On commence par donner une tuile pyramide au joueur
+
 	int randCouleur;
 	do { // On tire au sort la couleur du chameau qui va avancer
 		randCouleur = rand() % NB_COULEUR;
 	}while(!pyramide[randCouleur]);
+
 	int valeurDe = (rand() % 3) + 1; // Chiffre aléatoire entre 1 et 3
 	pyramide[randCouleur] = false; // On sort le dé de la pyramide
-	chameaux[randCouleur].position += valeurDe; // On fait avancer le chameau
+
+	Chameau chameauQuiBouge = chameaux[randCouleur];
+	int anciennePosition = chameauQuiBouge.position;
+
+	// Retirer notre chameau du dos d'un chameau s'il est dessus
+	for(int i = 0; i < NB_COULEUR; ++i) {
+		if(i == randCouleur) continue; // Ne pas effectuer la boucle sur le chameau qui bouge
+		// On retire le chameau qui va bouger du dos d'un autre chameau s'il est dessus
+		if(chameaux[i].chameauSurLeDos == &chameauQuiBouge) chameaux[i].chameauSurLeDos = NULL;
+	}
+
+	chameauQuiBouge.position += valeurDe; // On fait avancer le chameau
+
+	// Faire monter le chameau sur les autres s'il arrive sur une case déjà occupée
+	arriverChameauDessus(chameauQuiBouge, chameauQuiBouge.position);
+
+	// On gère le cas où on arrive sur une tuile désert
+	// On ne peut pas retomber sur une tuile désert après, car elles ne peuvent pas être placées côte à côte
+	for(int i = 0; i < nbJoueurs; ++i) {
+		if(parieurs[i].tuileDesert.position != chameauQuiBouge.position) continue; // Si le chameau n'est pas sur la tuile, on passe à la suivante
+		TuileDesert tuileDesert = parieurs[i].tuileDesert;
+		++parieurs[i].or; // On donne 1 d'or au joueur à qui appartient la tuile
+		if(tuileDesert.coteOasis) { // Côté Oasis de la tuile désert
+			++chameauQuiBouge.position;
+			arriverChameauDessus(chameauQuiBouge, chameauQuiBouge.position);
+		}else { // Côté Mirage de la tuile désert
+			--chameauQuiBouge.position;
+			arriverChameauDessous(chameauQuiBouge, chameauQuiBouge.position);
+		}
+	}
+
+	if(anciennePosition != chameauQuiBouge.position) { // Si on a pas changé de position, pas besoin
+		// On n'oublie pas de faire avancer les chameaux qu'on a sur le dos
+		Chameau * chameauCourant = &chameauQuiBouge;
+		while(chameauCourant->chameauSurLeDos != NULL) {
+			chameauCourant->chameauSurLeDos->position = chameauCourant->position;
+			chameauCourant = chameauCourant->chameauSurLeDos;
+		}
+	}
+
 	printf("Le dé %s est sorti de la pyramide avec une valeur de %d\n", couleurs[randCouleur], valeurDe);
 }
 
@@ -118,7 +195,7 @@ void pariManche(Parieur parieur) {
 		.couleur = choix
 	};
 	printf("Pari sur le chameau %s pour une valeur de %d enregistré\n", couleurs[choix], tuilesParis[choix] == 3 ? 5 : tuilesParis[choix]);
-    --tuilesParis[choix]; // On retire une tuile de pari de la couleur choisie
+	--tuilesParis[choix]; // On retire une tuile de pari de la couleur choisie
 }
 
 /**
@@ -168,7 +245,14 @@ void pariCourse(Parieur parieur) {
  * @return true si la position est valide, faux sinon
  */
 bool validePositionDesert(int position) {
-	return true; // TODO : Cette fonction
+	if(position == 1) return false; // On ne peut pas poser en 1
+	for(int i = 0; i < nbJoueurs; ++i) { // On teste les contraintes avec toutes les tuiles en place
+		TuileDesert tuileDesert = parieurs[i].tuileDesert;
+		if(tuileDesert.position == -1) continue; // Tuile pas posée
+		// Si on pose dans une case adjascente à la tuile en place (position-1 <= tuileDesert.position <= position+1)
+		if(position - 1 <= tuileDesert.position && tuileDesert.position <= position + 1) return false;
+	}
+	return true;
 }
 
 /**
@@ -230,7 +314,6 @@ void tour(Parieur parieur) {
 	}
 }
 
-
 // *********************************
 // ***** Utilitaires de manche *****
 // *********************************
@@ -245,9 +328,11 @@ void debutManche() {
 		tuilesParis[i] = 3; // 3 tuiles de paris de chaque au début de manche
 	}
 
-	for(int i = 0; i < nbJoueurs; ++i) // Réinitialisation des paris de manche
+	for(int i = 0; i < nbJoueurs; ++i) { // Réinitialisation des paris de manche
 		for(int j = 0; j < 3 * NB_COULEUR; ++j)
-			if(parieurs[i].parisManche[j]) parieurs[i].parisManche[j] = NULL;
+			parieurs[i].parisManche[j] = NULL;
+		parieurs[i].tuileDesert.position = -1; // On retire les tuiles désert du pateau
+	}
 }
 
 /**
@@ -266,7 +351,7 @@ void finManche() {
  * @return true si la manche est terminée, faux sinon
  */
 bool mancheEstTerminee() {
-    return !pyramide[0] && !pyramide[1] && !pyramide[2] && !pyramide[3] && !pyramide[4];
+	return !pyramide[0] && !pyramide[1] && !pyramide[2] && !pyramide[3] && !pyramide[4];
 }
 
 /**
@@ -276,8 +361,8 @@ bool mancheEstTerminee() {
  */
 bool partieEstFinie() {
 	for(int i = 0; i < NB_COULEUR; ++i)
-        if(chameaux[i].position > 16) return true;
-    return false;
+		if(chameaux[i].position > 16) return true;
+	return false;
 }
 
 /**
@@ -285,58 +370,75 @@ bool partieEstFinie() {
  * et qui l'affecte à la variable globale
  */
 void demandeNombreJoueurs() {
-    printf("Veuillez entrer le nombre de joueurs (Entre 3 et 8) : ");
-    // Tant que le scanf est incohérent ou que la valeur entrée n'est pas entre 3 et 8
-    while(scanf_s("%d", &nbJoueurs) == 0 || !(nbJoueurs >= 3 && nbJoueurs <= 8)) {
-        printf("Saisie invalide, veuillez saisir un nombre entre 3 et 8 : ");
-        clearInputBuffer(); // Au cas où la saisie est invalide
-    }
-    fgetc(stdin); // Traiter le \n restant du buffer après la dernière saisie
-    printf("La partie se déroulera avec %d joueurs\n", nbJoueurs);
+	printf("Veuillez entrer le nombre de joueurs (Entre 3 et 8) : ");
+	// Tant que le scanf est incohérent ou que la valeur entrée n'est pas entre 3 et 8
+	while(scanf_s("%d", &nbJoueurs) == 0 || !(nbJoueurs >= 3 && nbJoueurs <= 8)) {
+		printf("Saisie invalide, veuillez saisir un nombre entre 3 et 8 : ");
+		clearInputBuffer(); // Au cas où la saisie est invalide
+	}
+	fgetc(stdin); // Traiter le \n restant du buffer après la dernière saisie
+	printf("La partie se déroulera avec %d joueurs\n", nbJoueurs);
 }
 
 /**
  * Fonction qui initialise les joueurs
  */
 void initialiserJoueurs() {
-    // Initialisation des joueurs
-    parieurs = malloc(nbJoueurs * sizeof(Parieur));
-    for(int i = 0; i < nbJoueurs; ++i) {
-        printf("Entrer le nom du joueur %d (20 caractères maximum) : ", i+1); // Demande du nom
-        // fgets → Comme scanf avec des restrictions
-        //  var d'affectation | taille maximale input | input
-        fgets(parieurs[i].nom, sizeof(parieurs[i].nom), stdin);
-        if(!containsLineBreak(parieurs[i].nom)) clearInputBuffer(); // Clear le buffer si nécessaire
-        replaceLineBreak(parieurs[i].nom, '\0'); // Enlève le retour à la ligne du nom du joueur
-        parieurs[i].or = 3;
-        parieurs[i].tuilesPyramide = 0;
-        parieurs[i].nbParisManche = 0;
-        for(int j = 0; j < NB_COULEUR; ++j) parieurs[i].tuilesPariCourse[j] = true;
-        parieurs[i].tuileDesert = (TuileDesert) { // Initialisation de la tuile désert
-                .position = -1,
-                .coteOasis = true
-        };
-    }
+	// Initialisation des joueurs
+	parieurs = malloc(nbJoueurs * sizeof(Parieur));
+	for(int i = 0; i < nbJoueurs; ++i) {
+		printf("Entrer le nom du joueur %d (20 caractères maximum) : ", i+1); // Demande du nom
+		// fgets → Comme scanf avec des restrictions
+		//  var d'affectation | taille maximale input | input
+		fgets(parieurs[i].nom, sizeof(parieurs[i].nom), stdin);
+		if(!containsLineBreak(parieurs[i].nom)) clearInputBuffer(); // Clear le buffer si nécessaire
+		replaceLineBreak(parieurs[i].nom, '\0'); // Enlève le retour à la ligne du nom du joueur
+		parieurs[i].or = 3;
+		parieurs[i].tuilesPyramide = 0;
+		parieurs[i].nbParisManche = 0;
+		for(int j = 0; j < NB_COULEUR; ++j) parieurs[i].tuilesPariCourse[j] = true;
+		parieurs[i].tuileDesert = (TuileDesert) { // Initialisation de la tuile désert
+				.position = -1,
+				.coteOasis = true
+		};
+	}
 }
 
 /**
  * Fonction qui initialise les chameaux
  */
 void initialiserChameaux() {
-    // Initialisation des chameaux
-    for(int i = 0; i < NB_COULEUR; ++i) {
-        chameaux[i].position = 0;
-        chameaux[i].chameauSurLeDos = NULL;
-        chameaux[i].couleur = &couleurs[i];
-    }
+	for(int i = 0; i < NB_COULEUR; ++i) {
+		chameaux[i].position = 0;
+		chameaux[i].chameauSurLeDos = NULL;
+		chameaux[i].couleur = &couleurs[i];
+	}
 }
 
 /**
  * Fonction qui initialise les paris course
  */
 void initialiserParisCourse() {
-    parisCourse = malloc(nbJoueurs * NB_COULEUR * sizeof(PariCourse)); // Le tableau pourra contenir 5 paris course par joueur au maximum
-    for(int i = 0; i < nbJoueurs * NB_COULEUR; ++i) parisCourse[i] = NULL;
+	parisCourse = malloc(nbJoueurs * NB_COULEUR * sizeof(PariCourse)); // Le tableau pourra contenir 5 paris course par joueur au maximum
+	for(int i = 0; i < nbJoueurs * NB_COULEUR; ++i) parisCourse[i] = NULL;
+}
+
+/**
+ * Effectue toutes les actions nécessaires au début de la partie
+ */
+void debutDePartie() {
+	for(int i = 0; i < NB_COULEUR; ++i) {
+		chameaux[i].position = rand()%3 + 1; // On place le chameau au hasard entre la case 1 et 3
+		for(int j = i-1; j > 0; --j) { // On vérifie s'il y a déjà un chameau sur la case
+			// Si les chameaux ne sont pas sur la même case, on continue
+			if(chameaux[j].position != chameaux[i].position) continue;
+
+			if(rand()%2 == 0) // On pose aléatoirement le premier ou deuxième chameau sur le dos de l'autre
+				chameaux[i].chameauSurLeDos = &chameaux[j];
+			else
+				chameaux[j].chameauSurLeDos = &chameaux[i];
+		}
+	}
 }
 
 /**
@@ -348,9 +450,11 @@ int main() {
 
 	demandeNombreJoueurs();
 
-    initialiserJoueurs();
-    initialiserChameaux();
-    initialiserParisCourse();
+	initialiserJoueurs();
+	initialiserChameaux();
+	initialiserParisCourse();
+
+	debutDePartie();
 
 	// Boucle de partie
 	int compteurTour = rand()%nbJoueurs; // Choix aléatoire du premier joueur

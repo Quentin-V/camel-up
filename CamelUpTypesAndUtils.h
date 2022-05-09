@@ -14,7 +14,7 @@
  */
 typedef struct Chameau {
 	int position; // Position du chameau sur le plateau
-	char ** couleur; // Chaine de caractère de la couleur du chameau
+	const char ** couleur; // Chaine de caractère de la couleur du chameau
 	struct Chameau * chameauSurLeDos; // Pointeur sur le chameau qui est sur son dos s'il existe
 } Chameau;
 
