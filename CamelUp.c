@@ -143,6 +143,8 @@ void prendreTuilePyramide(Parieur * parieur) {
 	// Faire monter le chameau sur les autres s'il arrive sur une case déjà occupée
 	arriverChameauDessus(chameauQuiBouge, chameauQuiBouge->position);
 
+	printf("Le dé %s est sorti de la pyramide avec une valeur de %d\n", couleurs[randCouleur], valeurDe);
+
 	// On gère le cas où on arrive sur une tuile désert
 	// On ne peut pas retomber sur une tuile désert après, car elles ne peuvent pas être placées côte à côte
 	for(int i = 0; i < nbJoueurs; ++i) {
@@ -170,8 +172,6 @@ void prendreTuilePyramide(Parieur * parieur) {
 			chameauCourant = chameauCourant->chameauSurLeDos;
 		}
 	}
-
-	printf("Le dé %s est sorti de la pyramide avec une valeur de %d\n", couleurs[randCouleur], valeurDe);
 }
 
 /**
@@ -271,6 +271,8 @@ bool validePositionDesert(int position, Parieur * parieur) {
 		// Si on pose dans une case adjascente à la tuile en place (position-1 <= tuileDesert.position <= position+1)
 		if(position - 1 <= tuileDesert.position && tuileDesert.position <= position + 1) return false;
 	}
+	// Pour ne pas placer sur un chameau
+	for(int i = 0; i < NB_COULEUR; ++i) if(position == chameaux[i].position) return false;
 	return true;
 }
 
@@ -339,9 +341,9 @@ void tour(Parieur * parieur) {
 	}
 }
 
-// *********************************
-// ***** Utilitaires de manche *****
-// *********************************
+// **********************************************
+// ***** Utilitaires de manche et de partie *****
+// **********************************************
 
 /**
  * Fonction qui reset les variables pour le début des manches
@@ -364,6 +366,8 @@ void debutManche() {
  * Fonction qui s'exécute à la fin de la manche pour effectuer les actions de comptage des points
  */
 void finManche() {
+	//int * classement = trouverClassement(chameaux);
+	//printf("Classement chameaux : %s, %s, %s, %s, %s", couleurs[classement[0]], couleurs[classement[1]], couleurs[classement[2]], couleurs[classement[3]], couleurs[classement[4]]);
 	printf("Fin de la manche!\n");
 	printf("Les joueurs gagnent une ligne égyptienne pour chaque tuile pyramide en leur possession");
 	printf("Résultat des paris : ");
@@ -374,10 +378,36 @@ void finManche() {
 		// On calcule le résultat des paris
 		printf("\t%s : ", parieurs[i].nom);
 		for(int j = 0; j < parieurs[i].nbParisManche; ++j) {
-
+			printf("\t\t Pari sur le chameau ");
 		}
 	}
 	attendreInput("Appuyez sur entrée pour passer à la manche suivante");
+}
+
+/**
+ * Effectue toutes les actions nécessaires au début de la partie
+ */
+void debutDePartie() {
+	for(int i = 0; i < NB_COULEUR; ++i) {
+		chameaux[i].position = rand() % 3 ; // On place le chameau au hasard entre la case 1 et 3 (position 0 à 2)
+		for(int j = i-1; j >= 0; --j) { // On vérifie s'il y a déjà un chameau sur la case
+			// Si les chameaux ne sont pas sur la même case, on continue
+			if(chameaux[j].position != chameaux[i].position) continue;
+
+			bool vaDessus = rand() % 2 == 0;
+			if(vaDessus) { // On pose aléatoirement le nouveau chameau par dessus ou en dessous du groupe de chameau sur la case
+				Chameau * chameauDuHaut = trouverChameauDuHaut(&chameaux[j]);
+				chameauDuHaut->chameauSurLeDos = &chameaux[i];
+				chameaux[i].chameauDessous = chameauDuHaut;
+				break;
+			}else {
+				Chameau * chameauDuBas = trouverChameauDuBas(&chameaux[j]);
+				chameauDuBas->chameauDessous = &chameaux[i];
+				chameaux[i].chameauSurLeDos = chameauDuBas;
+				break;
+			}
+		}
+	}
 }
 
 /**
@@ -399,6 +429,10 @@ bool partieEstFinie() {
 		if(chameaux[i].position > 16) return true;
 	return false;
 }
+
+// *******************************************
+// ***** Utilitaires de d'initialisation *****
+// *******************************************
 
 /**
  * Fonction qui demande le nombre de joueurs
@@ -476,32 +510,6 @@ void initialiserPlateau() {
 		// On met toutes les lignes à des lignes vides pour commencer
 		for(int j = 0; j < NB_COULEUR; ++j) sprintf(c.lignes[j], "%s", ligneVide);
 		casesPlateau[i] = c;
-	}
-}
-
-/**
- * Effectue toutes les actions nécessaires au début de la partie
- */
-void debutDePartie() {
-	for(int i = 0; i < NB_COULEUR; ++i) {
-		chameaux[i].position = rand() % 3 ; // On place le chameau au hasard entre la case 1 et 3 (position 0 à 2)
-		for(int j = i-1; j >= 0; --j) { // On vérifie s'il y a déjà un chameau sur la case
-			// Si les chameaux ne sont pas sur la même case, on continue
-			if(chameaux[j].position != chameaux[i].position) continue;
-
-			bool vaDessus = rand() % 2 == 0;
-			if(vaDessus) { // On pose aléatoirement le nouveau chameau par dessus ou en dessous du groupe de chameau sur la case
-				Chameau * chameauDuHaut = trouverChameauDuHaut(&chameaux[j]);
-				chameauDuHaut->chameauSurLeDos = &chameaux[i];
-				chameaux[i].chameauDessous = chameauDuHaut;
-				break;
-			}else {
-				Chameau * chameauDuBas = trouverChameauDuBas(&chameaux[j]);
-				chameauDuBas->chameauDessous = &chameaux[i];
-				chameaux[i].chameauSurLeDos = chameauDuBas;
-				break;
-			}
-		}
 	}
 }
 

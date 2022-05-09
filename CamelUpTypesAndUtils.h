@@ -164,6 +164,51 @@ void attendreInput(char * message) {
 	if(in != '\n') clearInputBuffer();
 }
 
+bool inArray(int needle, const int * haystack, int size) {
+	if(size == 0) return false;
+	for(int i = 0; i < size; ++i)
+		if(haystack[i] == needle) return true;
+	return false;
+}
+
+int compare( const void* a, const void* b) {
+	int int_a = * ( (int*) a );
+	int int_b = * ( (int*) b );
+
+	if ( int_a == int_b ) return 0;
+	else if ( int_a < int_b ) return -1;
+	else return 1;
+}
+
+int * trouverClassement(Chameau chameaux[]) {
+	int nbCasesDifferentes = 0;
+	int casesAvecChameau[5] = {-1, -1, -1, -1, -1};
+	// On trouve toutes les cases différentes qui ont un chameau
+	for(int i  = 0; i < NB_COULEUR; ++i) {
+		if(inArray(chameaux[i].position, casesAvecChameau, nbCasesDifferentes)) continue;
+		casesAvecChameau[nbCasesDifferentes++] = chameaux[i].position;
+	}
+	// On trie le tableau
+	qsort(casesAvecChameau, nbCasesDifferentes, sizeof(int), compare);
+
+	int classement[NB_COULEUR];
+	int compteClassement = 0;
+	for(int i = 0; i < nbCasesDifferentes; ++i) {
+		int position = casesAvecChameau[i];
+		for(int j = 0; j < NB_COULEUR; ++j) {
+			if(chameaux[j].position != position) continue;
+			Chameau * chameauBas = trouverChameauDuBas(&chameaux[j]);
+			classement[compteClassement++] = chameauBas->couleur;
+			while(chameauBas->chameauSurLeDos != NULL) {
+				chameauBas = chameauBas->chameauSurLeDos;
+				classement[compteClassement++] = chameauBas->couleur;
+			}
+			break;
+		}
+	}
+	return classement;
+}
+
 void afficherPlateau();
 
 #endif //CAMELUP_CAMELUPTYPESANDUTILS_H
