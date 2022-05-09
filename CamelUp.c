@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
-#include <string.h>
 
 #define NB_COULEUR 5 // Nombre de couleurs / chameaux
 #define TAILLE_PLATEAU 16// Nombre de cases sur le plateau
@@ -459,7 +458,7 @@ void initialiserPlateau() {
 				}
 		};
 		// On met toutes les lignes à des lignes vides pour commencer
-		for(int j = 0; j < NB_COULEUR; ++j) sprintf(c.lignes[j], "%9s", ligneVide);
+		for(int j = 0; j < NB_COULEUR; ++j) sprintf(c.lignes[j], "%s", ligneVide);
 		casesPlateau[i] = c;
 	}
 }
@@ -495,6 +494,7 @@ void debutDePartie() {
  * @return 0 si tout va bien
  */
 int main() {
+	setbuf(stdin, 0);
 	// Permet d'afficher les unicodes et accents etc...
 	system("chcp 65001");
 
@@ -514,7 +514,7 @@ int main() {
 	while(!partieEstFinie()) { // partie pas finie
 		debutManche();
 		while(!mancheEstTerminee()) { // manche en cours
-			system("cls");
+			//system("cls");
 			afficherPlateau();
 			tour(parieurs[compteurTour++%nbJoueurs]); // On fait le tour d'un joueur
 			printf("Appuyez sur entrée pour passer au tour suivant...");
@@ -535,7 +535,12 @@ int main() {
  * @param position la position, de la case à générer
  */
 Case genererCase(int position) {
-	Case c = casesPlateau[position];
+	Case c;
+	if(&casesPlateau[position] == &caseVide) {
+
+	}else {
+		c = casesPlateau[position];
+	}
 
 	int nbChameauxSurCase = 0;
 	Chameau * chameauBasDeCase = NULL;
@@ -561,7 +566,7 @@ Case genererCase(int position) {
 	chameauBasDeCase = trouverChameauDuBas(chameauBasDeCase);
 
 	// On vide les cases (car le contenu peut avoir changé)
-	for(int i = 0; i < NB_COULEUR; ++i) sprintf(c.lignes[i], "%9s", ligneVide);
+	for(int i = 0; i < NB_COULEUR; ++i) sprintf(c.lignes[i], "%s", ligneVide);
 
 	switch (nbChameauxSurCase) {
 		case 1:
@@ -598,8 +603,10 @@ void afficherPlateau() {
 		if(parieurs[i].tuileDesert.position != -1) caseEstVide[parieurs[i].tuileDesert.position] = false;
 
 	for(int i = 0; i < TAILLE_PLATEAU; ++i) {
-		if(caseEstVide[i]) casesPlateau[i] = caseVide;
-		else casesPlateau[i] = genererCase(i);
+		if(caseEstVide[i])
+			for(int j = 0; j < NB_COULEUR; ++j)
+				sprintf(casesPlateau[i].lignes[j], "%s", ligneVide);
+		else genererCase(i);
 	}
 
 	printf(formatPlateau,
