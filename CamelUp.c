@@ -401,7 +401,7 @@ void finManche() {
  */
 void debutPartie() {
 	for(int i = 0; i < NB_COULEUR; ++i) {
-		chameaux[i].position = rand() % 3 + 13 ; // On place le chameau au hasard entre la case 1 et 3 (position 0 à 2)
+		chameaux[i].position = rand() % 3; // On place le chameau au hasard entre la case 1 et 3 (position 0 à 2)
 		for(int j = i-1; j >= 0; --j) { // On vérifie s'il y a déjà un chameau sur la case
 			// Si les chameaux ne sont pas sur la même case, on continue
 			if(chameaux[j].position != chameaux[i].position) continue;
