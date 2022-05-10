@@ -28,7 +28,8 @@ bool pyramide[NB_COULEUR]; // La pyramide qui contient les dés
 int tuilesParis[NB_COULEUR]; // Le nombre de tuiles de pari manche de chaque couleur
 Chameau chameaux[NB_COULEUR]; // Déclaration des chameaux
 Parieur * parieurs; // Pointeur sur Parieur (tableau dynamique contenant les joueurs)
-PariCourse ** parisCourse; // Tableau de pointeurs sur PariCourse (tableau pas encore alloué qui contiendra les paris de course de la partie)
+PariCourse * parisCourse; // Tableau de pointeurs sur PariCourse (tableau pas encore alloué qui contiendra les paris de course de la partie)
+int nbParisCourse;
 Case casesPlateau[TAILLE_PLATEAU];
 
 // ************************************************
@@ -162,7 +163,6 @@ void prendreTuilePyramide(Parieur * parieur) {
 			arriverChameauDessous(chameauQuiBouge, chameauQuiBouge->position);
 			printf("Le chameau recule d'une case\n");
 		}
-		attendreInput("Appuyez sur entrée pour continuer...");
 	}
 
 	if(anciennePosition != chameauQuiBouge->position) { // Si on a pas changé de position, pas besoin
@@ -250,12 +250,7 @@ void pariCourse(Parieur * parieur) {
 		.couleur = choix,
 		.victorieux = choixGagnerPerdre == 'G' || choixGagnerPerdre == 'g'
 	};
-	for(int index = 0; index < nbJoueurs * NB_COULEUR; ++index) { // Pour chaque case du tableau parisCourse
-		if(parisCourse[index] == NULL) { // Dès qu'on trouve un élément à NULL
-			parisCourse[index] = &pc; // On affecte le pari à cette case
-			break; // On sort du for
-		}
-	}
+	parisCourse[nbParisCourse++] = pc;
 	printf("Pari de course de %s enregistré\n", parieur->nom);
 }
 
@@ -406,7 +401,7 @@ void finManche() {
  */
 void debutPartie() {
 	for(int i = 0; i < NB_COULEUR; ++i) {
-		chameaux[i].position = rand() % 3 ; // On place le chameau au hasard entre la case 1 et 3 (position 0 à 2)
+		chameaux[i].position = rand() % 3 + 13 ; // On place le chameau au hasard entre la case 1 et 3 (position 0 à 2)
 		for(int j = i-1; j >= 0; --j) { // On vérifie s'il y a déjà un chameau sur la case
 			// Si les chameaux ne sont pas sur la même case, on continue
 			if(chameaux[j].position != chameaux[i].position) continue;
@@ -428,7 +423,42 @@ void debutPartie() {
 }
 
 void finPartie() {
-	printf("Partie terminée!\n");
+	printf("\n\nPartie terminée!\n");
+
+	int classement[5];
+	trouverClassement(chameaux, classement);
+
+	int nbParisGagnes = 0;
+	printf("Comptage des paris de victoire de course :\n");
+	for(int i = 0; i < nbParisCourse; ++i) {
+		if(!parisCourse[i].victorieux) continue;
+		PariCourse pc = parisCourse[i];
+		int gainOuPerte = classement[0] != pc.couleur ? -1 : nbParisGagnes == 0 ? 8 : nbParisGagnes == 1 ? 5 : nbParisGagnes == 2 ? 3 : nbParisGagnes == 3 ? 2 : 1;
+		printf("\tPari de victoire de %s sur le chameau %s : %s (%+d livres égyptiennes)\n",
+			   pc.parieur->nom,
+			   couleurs[pc.couleur],
+			   classement[0] == pc.couleur ? "Gagné" : "Perdu",
+			   gainOuPerte
+			   );
+		pc.parieur->or += gainOuPerte;
+		if(gainOuPerte > 0) ++nbParisGagnes;
+	}
+
+	nbParisGagnes = 0;
+	printf("Comptage des paris de défaite de course :\n");
+	for(int i = 0; i < nbParisCourse; ++i) {
+		if(parisCourse[i].victorieux) continue;
+		PariCourse pc = parisCourse[i];
+		int gainOuPerte = classement[4] != pc.couleur ? -1 : nbParisGagnes == 0 ? 8 : nbParisGagnes == 1 ? 5 : nbParisGagnes == 2 ? 3 : nbParisGagnes == 3 ? 2 : 1;
+		printf("\tPari de défaite de %s sur le chameau %s : %s (%+d livres égyptiennes)\n",
+		       pc.parieur->nom,
+		       couleurs[pc.couleur],
+		       classement[4] == pc.couleur ? "Gagné" : "Perdu",
+		       gainOuPerte
+		);
+		pc.parieur->or += gainOuPerte;
+		if(gainOuPerte > 0) ++nbParisGagnes;
+	}
 
 	Parieur * vainqueur = &parieurs[0];
 	for(int i = 1; i < nbJoueurs; ++i)
@@ -436,7 +466,7 @@ void finPartie() {
 	printf("Vainqueur de la partie : %s\n", vainqueur->nom);
 	printf("Infos de tous les joueurs : \n");
 	for(int i = 0; i < nbJoueurs; ++i) {
-		printf("\t%s : %d livres égyptiennes", parieurs[i].nom, parieurs[i].or);
+		printf("\t%s : %d livres égyptiennes\n", parieurs[i].nom, parieurs[i].or);
 	}
 }
 
@@ -456,7 +486,7 @@ bool mancheEstTerminee() {
  */
 bool partieEstFinie() {
 	for(int i = 0; i < NB_COULEUR; ++i)
-		if(chameaux[i].position > 16) return true;
+		if(chameaux[i].position >= 16) return true;
 	return false;
 }
 
@@ -520,7 +550,7 @@ void initialiserChameaux() {
  */
 void initialiserParisCourse() {
 	parisCourse = malloc(nbJoueurs * NB_COULEUR * sizeof(PariCourse)); // Le tableau pourra contenir 5 paris course par joueur au maximum
-	for(int i = 0; i < nbJoueurs * NB_COULEUR; ++i) parisCourse[i] = NULL;
+	nbParisCourse = 0;
 }
 
 /**
@@ -566,8 +596,7 @@ int main() {
 	int compteurTour = rand()%nbJoueurs; // Choix aléatoire du premier joueur
 	while(!partieEstFinie()) { // partie pas finie
 		debutManche();
-		while(!mancheEstTerminee()) { // manche en cours
-			//system("cls");
+		while(!mancheEstTerminee() && !partieEstFinie()) { // manche en cours
 			afficherPlateau();
 			tour(&parieurs[compteurTour++%nbJoueurs]); // On fait le tour d'un joueur
 			attendreInput("Appuyez sur entrée pour passer au tour suivant...");
@@ -597,7 +626,7 @@ Case genererCase(int position) {
 	TuileDesert * tuileSurCase = NULL;
 	Parieur * proprietaireTuile = NULL;
 	for(int i = 0; i < NB_COULEUR; ++i) {
-		if(chameaux[i].position == position) { // Si un chameau est sur la position
+		if(chameaux[i].position%16 == position) { // Si un chameau est sur la position
 			// On affecte le chameau de bas de case au premier trouvé
 			if(chameauBasDeCase == NULL) chameauBasDeCase = &chameaux[i];
 			++nbChameauxSurCase;
@@ -654,7 +683,7 @@ void afficherPlateau() {
 	bool caseEstVide[TAILLE_PLATEAU];
 	for(int i = 0; i < TAILLE_PLATEAU; ++i) caseEstVide[i] = true;
 	for(int i = 0; i < NB_COULEUR; ++i) // On dit que la case à la position du chameau n'est pas vide
-		caseEstVide[chameaux[i].position] = false;
+		caseEstVide[chameaux[i].position%16] = false;
 	for(int i = 0; i < nbJoueurs; ++i) // Si la tuile est sur une case, alors cette case n'est pas vide
 		if(parieurs[i].tuileDesert.position != -1) caseEstVide[parieurs[i].tuileDesert.position] = false;
 
