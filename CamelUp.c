@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
+#include <string.h>
 
 #define NB_COULEUR 5 // Nombre de couleurs / chameaux
 #define TAILLE_PLATEAU 16// Nombre de cases sur le plateau
@@ -403,7 +404,7 @@ void finManche() {
 /**
  * Effectue toutes les actions nécessaires au début de la partie
  */
-void debutDePartie() {
+void debutPartie() {
 	for(int i = 0; i < NB_COULEUR; ++i) {
 		chameaux[i].position = rand() % 3 ; // On place le chameau au hasard entre la case 1 et 3 (position 0 à 2)
 		for(int j = i-1; j >= 0; --j) { // On vérifie s'il y a déjà un chameau sur la case
@@ -423,6 +424,19 @@ void debutDePartie() {
 				break;
 			}
 		}
+	}
+}
+
+void finPartie() {
+	printf("Partie terminée!\n");
+
+	Parieur * vainqueur = &parieurs[0];
+	for(int i = 1; i < nbJoueurs; ++i)
+		if(parieurs[i].or > vainqueur->or) vainqueur = &parieurs[i];
+	printf("Vainqueur de la partie : %s\n", vainqueur->nom);
+	printf("Infos de tous les joueurs : \n");
+	for(int i = 0; i < nbJoueurs; ++i) {
+		printf("\t%s : %d livres égyptiennes", parieurs[i].nom, parieurs[i].or);
 	}
 }
 
@@ -546,7 +560,7 @@ int main() {
 	initialiserParisCourse();
 	initialiserPlateau();
 
-	debutDePartie();
+	debutPartie();
 
 	// Boucle de partie
 	int compteurTour = rand()%nbJoueurs; // Choix aléatoire du premier joueur
@@ -561,6 +575,8 @@ int main() {
 		afficherPlateau();
 		finManche();
 	}
+
+	finPartie();
 
 	return 0;
 }
@@ -579,6 +595,7 @@ Case genererCase(int position) {
 	int nbChameauxSurCase = 0;
 	Chameau * chameauBasDeCase = NULL;
 	TuileDesert * tuileSurCase = NULL;
+	Parieur * proprietaireTuile = NULL;
 	for(int i = 0; i < NB_COULEUR; ++i) {
 		if(chameaux[i].position == position) { // Si un chameau est sur la position
 			// On affecte le chameau de bas de case au premier trouvé
@@ -589,11 +606,16 @@ Case genererCase(int position) {
 	for(int i = 0; i < nbJoueurs; ++i) {
 		if(parieurs[i].tuileDesert.position == position) { // Si une tuile désert est sur cette position
 			tuileSurCase = &parieurs[i].tuileDesert;
+			proprietaireTuile = &parieurs[i];
 			break;
 		}
 	}
 	if(tuileSurCase != NULL) { // Si la case a une tuile
 		sprintf(c.lignes[2], " %6s  ", tuileSurCase->coteOasis ? "Oasis" : "Mirage");
+		if(strlen(proprietaireTuile->nom) > 7)
+			sprintf(c.lignes[3], " %.6s. ", proprietaireTuile->nom);
+		else
+			sprintf(c.lignes[3], " %7s ", proprietaireTuile->nom);
 		return c; // Pas besoin de faire les chameaux, car ils ne peuvent pas être sur la même case
 	}
 	// On vérifie que le chameau est bien celui du bas
