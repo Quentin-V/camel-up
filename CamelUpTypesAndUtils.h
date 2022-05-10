@@ -97,7 +97,7 @@ typedef struct Parieur {
 	int or;
 	int tuilesPyramide;
 	int nbParisManche;
-	PariManche *parisManche[NB_COULEUR * 3]; // Tableau de pointeurs sur des PariManche
+	PariManche parisManche[NB_COULEUR * 3]; // Tableau de pointeurs sur des PariManche
 	bool tuilesPariCourse[NB_COULEUR];
 	TuileDesert tuileDesert;
 } Parieur;
@@ -171,16 +171,22 @@ bool inArray(int needle, const int * haystack, int size) {
 	return false;
 }
 
-int compare( const void* a, const void* b) {
+int compareInverse( const void* a, const void* b) {
 	int int_a = * ( (int*) a );
 	int int_b = * ( (int*) b );
 
 	if ( int_a == int_b ) return 0;
-	else if ( int_a < int_b ) return -1;
+	else if ( int_a > int_b ) return -1;
 	else return 1;
 }
 
-int * trouverClassement(Chameau chameaux[]) {
+/**
+ * Calcule le classement et le stock dans le tableau passé en paramètre
+ * @param chameaux la liste des chameaux
+ * @param classement le classement à remplir
+ * @return si besoin le classement
+ */
+int * trouverClassement(Chameau chameaux[], int * classement) {
 	int nbCasesDifferentes = 0;
 	int casesAvecChameau[5] = {-1, -1, -1, -1, -1};
 	// On trouve toutes les cases différentes qui ont un chameau
@@ -189,19 +195,17 @@ int * trouverClassement(Chameau chameaux[]) {
 		casesAvecChameau[nbCasesDifferentes++] = chameaux[i].position;
 	}
 	// On trie le tableau
-	qsort(casesAvecChameau, nbCasesDifferentes, sizeof(int), compare);
-
-	int classement[NB_COULEUR];
+	qsort(casesAvecChameau, nbCasesDifferentes, sizeof(int), compareInverse);
 	int compteClassement = 0;
 	for(int i = 0; i < nbCasesDifferentes; ++i) {
 		int position = casesAvecChameau[i];
 		for(int j = 0; j < NB_COULEUR; ++j) {
 			if(chameaux[j].position != position) continue;
-			Chameau * chameauBas = trouverChameauDuBas(&chameaux[j]);
-			classement[compteClassement++] = chameauBas->couleur;
-			while(chameauBas->chameauSurLeDos != NULL) {
-				chameauBas = chameauBas->chameauSurLeDos;
-				classement[compteClassement++] = chameauBas->couleur;
+			Chameau * chameauDuHaut = trouverChameauDuHaut(&chameaux[j]);
+			classement[compteClassement++] = chameauDuHaut->couleur;
+			while(chameauDuHaut->chameauDessous != NULL) {
+				chameauDuHaut = chameauDuHaut->chameauDessous;
+				classement[compteClassement++] = chameauDuHaut->couleur;
 			}
 			break;
 		}

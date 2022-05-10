@@ -205,12 +205,13 @@ void pariManche(Parieur * parieur) {
 		printf("Choix invalide, choisis une tuile parmi les disponibles : ");
 		clearInputBuffer();
 	}
+	 fgetc(stdin); // Traitement du \n restant
 	--choix; // On enlève 1 à choix, car l'utilisateur a saisi entre 1 et 5 et on veut entre 0 et 4
-	parieur->parisManche[parieur->nbParisManche++] = &(PariManche) {
-		.valeurPari = tuilesParis[choix] == 3 ? 5 : tuilesParis[choix],
-		.couleur = choix
+	parieur->parisManche[parieur->nbParisManche++] = (PariManche) {
+			.couleur = choix,
+			.valeurPari = tuilesParis[choix] == 3 ? 5 : tuilesParis[choix]
 	};
-	printf("Pari sur le chameau %s pour une valeur de %d enregistré\n", couleurs[choix], tuilesParis[choix] == 3 ? 5 : tuilesParis[choix]);
+	printf("Pari sur le chameau %s pour une valeur de %d enregistré\n", couleurs[choix], tuilesParis[choix] == 3 ? 5 : tuilesParis[choix]+1);
 	--tuilesParis[choix]; // On retire une tuile de pari de la couleur choisie
 }
 
@@ -356,8 +357,7 @@ void debutManche() {
 	}
 
 	for(int i = 0; i < nbJoueurs; ++i) { // Réinitialisation des paris de manche
-		for(int j = 0; j < 3 * NB_COULEUR; ++j)
-			parieurs[i].parisManche[j] = NULL;
+		parieurs[i].nbParisManche = 0;
 		parieurs[i].tuileDesert.position = -1; // On retire les tuiles désert du pateau
 	}
 }
@@ -366,19 +366,35 @@ void debutManche() {
  * Fonction qui s'exécute à la fin de la manche pour effectuer les actions de comptage des points
  */
 void finManche() {
-	//int * classement = trouverClassement(chameaux);
-	//printf("Classement chameaux : %s, %s, %s, %s, %s", couleurs[classement[0]], couleurs[classement[1]], couleurs[classement[2]], couleurs[classement[3]], couleurs[classement[4]]);
+	int classement[5];
+	trouverClassement(chameaux, classement);
+
 	printf("Fin de la manche!\n");
-	printf("Les joueurs gagnent une ligne égyptienne pour chaque tuile pyramide en leur possession");
-	printf("Résultat des paris : ");
+	printf("Classement : \n");
+	for(int i = 0; i < NB_COULEUR; ++i) {
+		printf("\t%d : %s\n", i+1, couleurs[classement[i]]);
+	}
+	printf("Les joueurs gagnent une livre égyptienne pour chaque tuile pyramide en leur possession\n");
+	printf("Résultat des paris :\n");
 	for(int i = 0; i < nbJoueurs; ++i) {
 		// On donne une livre par tuile pyramide
 		parieurs[i].or += parieurs[i].tuilesPyramide;
 		parieurs[i].tuilesPyramide = 0;
 		// On calcule le résultat des paris
 		printf("\t%s : ", parieurs[i].nom);
+		printf("%s\n", parieurs[i].nbParisManche == 0 ? "Pas de paris" : "");
 		for(int j = 0; j < parieurs[i].nbParisManche; ++j) {
-			printf("\t\t Pari sur le chameau ");
+			PariManche pm = parieurs[i].parisManche[j];
+			printf("\t\t Pari sur le chameau %s : ", couleurs[pm.couleur]);
+			if(pm.couleur == classement[0] || pm.couleur == classement[1]) { // Pari gagné
+				bool premier = pm.couleur == classement[0];
+				int gain = premier ? pm.valeurPari : 1;
+				printf("Gagné (+%d livre(s) égyptienne(s))", gain);
+				parieurs[i].or += gain;
+			}else { // Pari perdu
+				printf("Perdu (-1 livre égyptienne");
+			}
+			printf("\n");
 		}
 	}
 	attendreInput("Appuyez sur entrée pour passer à la manche suivante");
@@ -542,6 +558,7 @@ int main() {
 			tour(&parieurs[compteurTour++%nbJoueurs]); // On fait le tour d'un joueur
 			attendreInput("Appuyez sur entrée pour passer au tour suivant...");
 		}
+		afficherPlateau();
 		finManche();
 	}
 
