@@ -16,28 +16,28 @@ const char * formatPlateau = "                             _____________________
                              "                           /%9s/%9s/%9s/%9s/%9s/\n"
                              "                          /%9s/%9s/%9s/%9s/%9s/\n"
                              "                         /%9s/%9s/%9s/%9s/%9s/\n"
-                             "                        /%9s/%9s/%9s/%9s/%9s/\n"
-                             "                       /---------/-----------------------------/---------/\n"
-                             "                      /%9s/    12        13        14   /%9s/\n"
-                             "                     /%9s/                             /%9s/\n"
-                             "                    /%9s/ 10                       16 /%9s/\n"
-                             "                   /%9s/                             /%9s/\n"
-                             "                  /%9s/                             /%9s/\n"
+                             "                        /%9s/%9s/%9s/%9s/%9s/   Infos sur les paris manche :\n"
+                             "                       /---------/-----------------------------/---------/             Dispos | En cours\n"
+                             "                      /%9s/    12        13        14   /%9s/       - %7s : %d | %s\n"
+                             "                     /%9s/                             /%9s/        - %7s : %d | %s\n"
+                             "                    /%9s/ 10                       16 /%9s/         - %7s : %d | %s\n"
+                             "                   /%9s/                             /%9s/          - %7s : %d | %s\n"
+                             "                  /%9s/                             /%9s/           - %7s : %d | %s\n"
                              "                 /---------/                             /░░░░░░░░░/\n"
                              "                /%9s/                             /%9s/\n"
                              "               /%9s/                             /%9s/\n"
                              "              /%9s/ 9                         1 /%9s/\n"
-                             "             /%9s/                             /%9s/\n"
-                             "            /%9s/                             /%9s/\n"
-                             "           /---------/                             /---------/\n"
-                             "          /%9s/                             /%9s/\n"
-                             "         /%9s/                             /%9s/\n"
-                             "        /%9s/ 8                         2 /%9s/\n"
-                             "       /%9s/                             /%9s/\n"
-                             "      /%9s/    6        5         4     /%9s/\n"
+                             "             /%9s/                             /%9s/  %s\n"
+                             "            /%9s/                             /%9s/   %s\n"
+                             "           /---------/                             /---------/    %s\n"
+                             "          /%9s/                             /%9s/     %s\n"
+                             "         /%9s/                             /%9s/      %s\n"
+                             "        /%9s/ 8                         2 /%9s/       %s\n"
+                             "       /%9s/                             /%9s/        %s\n"
+                             "      /%9s/    6        5         4     /%9s/         %s\n"
                              "     /---------/-----------------------------/---------/\n"
-                             "    /%9s/%9s/%9s/%9s/%9s/\n"
-                             "   /%9s/%9s/%9s/%9s/%9s/\n"
+                             "    /%9s/%9s/%9s/%9s/%9s/ Dés dans la pyramide : %s\n"
+                             "   /%9s/%9s/%9s/%9s/%9s/            Dés sortis : %s\n"
                              "  /%9s/%9s/%9s/%9s/%9s/\n"
                              " /%9s/%9s/%9s/%9s/%9s/\n"
                              "/%9s/%9s/%9s/%9s/%9s/\n"
@@ -213,6 +213,14 @@ int * trouverClassement(Chameau chameaux[], int * classement) {
 	return classement;
 }
 
+const char * actionError[4] = {
+		"Pas d'erreur possible",
+		"Il n'y a plus de tuiles de pari manche disponibles",
+		"Tu as déjà parié sur tous les chameaux pour la course",
+		"Il n'y a aucun emplacement disponible pour une tuile désert sur le plateau"
+};
+
 void afficherPlateau();
+bool validePositionDesert(int position, Parieur * parieur);
 
 #endif //CAMELUP_CAMELUPTYPESANDUTILS_H

@@ -37,10 +37,40 @@ Case casesPlateau[TAILLE_PLATEAU];
 // ************************************************
 
 /**
+ * Permet de savoir si l'action choisie est valide
+ * @param action l'action choisie
+ * @param parieur le joueur qui a choisi l'action
+ * @return vrai si le joueur peut effectuer l'action, faux sinon
+ */
+bool actionValide(int action, Parieur * parieur) {
+	switch (action) {
+		case 1: return true; // Pas de vérification si c'est juste pour la première action
+		case 2:
+			// On vérifie qu'il reste des paris de manche
+			for(int i = 0; i < NB_COULEUR; ++i)
+				if(tuilesParis[i] != 0) return true;
+			return false;
+		case 3: { // On met des accolades pour pouvoir déclarer la variable
+			// On vérifie que le joueur n'a pas déjà 5 paris course
+			int nbParisJoueur = 0;
+			for (int i = 0; i < nbParisCourse; ++i)
+				if(parisCourse[i].parieur == parieur) ++nbParisJoueur;
+			return nbParisJoueur != 5;
+		}
+		case 4: { // Valide s'il y a au moins une case où on peut poser la tuile (normalement toujours le cas mais on sait jamais)
+			for(int i = 0; i < TAILLE_PLATEAU; ++i)
+				if(!validePositionDesert(i, NULL)) return false; // On vérifie la case et on ignore le joueur sinon on pourrait avoir un faux positif
+			return true;
+		}
+		default: return false;
+	}
+}
+
+/**
  * Affiche le menu de sélection d'action et attend l'entrée de l'utilisateur
  * @return le choix de l'utilisateur entre 1 et 4
  */
-int choisirAction() {
+int choisirAction(Parieur * parieur) {
 	printf("Choisis une action parmi les suivantes:\n");
 	printf("\t- 1 : Prendre une tuile pyramide et faire avancer un chameau\n");
 	printf("\t- 2 : Faire un pari sur la manche\n");
@@ -48,22 +78,13 @@ int choisirAction() {
 	printf("\t- 4 : (Dé)placer la tuile Désert\n");
 	printf("Ton choix : ");
 	int action;
-	while(scanf_s("%d", &action) == 0 || action < 1 || action > 4) { // Tant que la saisie n'est pas valide
-		printf("Choix invalide, choisis une action entre 1 et 4 : ");
+	while(scanf_s("%d", &action) == 0 || action < 1 || action > 4 || !actionValide(action, parieur)) { // Tant que la saisie n'est pas valide
+		if(action < 1 || action > 4) printf("Choix invalide, choisis une action entre 1 et 4 : ");
+		else printf("%s, choisis une autre action : ", actionError[action-1]);
 		clearInputBuffer();
 	}
 	fgetc(stdin); // Clear le '\n' restant du buffer
 	return action; // On retourne l'action choisie
-}
-
-/**
- * Permet de savoir si l'action choisie est valide
- * @param action l'action choisie
- * @param parieur le joueur qui a choisi l'action
- * @return vrai si le joueur peut effectuer l'action, faux sinon
- */
-bool actionValide(int action, Parieur * parieur) {
-	return true; // TODO : Cette fonction
 }
 
 // *********************************
@@ -178,9 +199,11 @@ void prendreTuilePyramide(Parieur * parieur) {
 /**
  * Permet à un parieur de parier sur le chameau gagnant de la manche en cours
  * @param parieur le joueur qui va parier sur un chameau
+ * @return vrai si l'action a été effectuée, faux sinon
  */
-void pariManche(Parieur * parieur) {
+bool pariManche(Parieur * parieur) {
 	printf("%s, quelle tuile de pari veux-tu prendre:\n", parieur->nom);
+	printf("\t- Retour (0)\n");
 	for(int i = 0; i < NB_COULEUR; ++i) {
 		printf("\t- %6s (%d), ", couleurs[i], i+1);
 		switch (tuilesParis[i]) {
@@ -202,36 +225,41 @@ void pariManche(Parieur * parieur) {
 	printf("Quel est ton choix : ");
 	int choix;
 	//      Tant que saisie incohérente     ou     hors des bornes             ou qu'il n'y a plus de tuiles
-	while(scanf_s("%d", &choix) == 0 || choix < 1 || choix > NB_COULEUR || tuilesParis[choix-1] < 1) {
+	while(scanf_s("%d", &choix) == 0 || choix < 0 || choix > NB_COULEUR || tuilesParis[choix-1] < 1) {
 		printf("Choix invalide, choisis une tuile parmi les disponibles : ");
 		clearInputBuffer();
 	}
-	 fgetc(stdin); // Traitement du \n restant
+	fgetc(stdin); // Traitement du \n restant
+	if(choix == 0) return false; // Action de retour
 	--choix; // On enlève 1 à choix, car l'utilisateur a saisi entre 1 et 5 et on veut entre 0 et 4
 	parieur->parisManche[parieur->nbParisManche++] = (PariManche) {
 			.couleur = choix,
-			.valeurPari = tuilesParis[choix] == 3 ? 5 : tuilesParis[choix]
+			.valeurPari = tuilesParis[choix] == 3 ? 5 : tuilesParis[choix]+1
 	};
 	printf("Pari sur le chameau %s pour une valeur de %d enregistré\n", couleurs[choix], tuilesParis[choix] == 3 ? 5 : tuilesParis[choix]+1);
 	--tuilesParis[choix]; // On retire une tuile de pari de la couleur choisie
+	return true; // On confirme que l'action a bien été faite
 }
 
 /**
  * Permet à un parieur de parier sur la victoire ou défaite d'un chameau à la course
  * @param parieur le joueur qui va parier sur le chameau
+ * @return vrai si l'action a été effectuée, faux sinon
  */
-void pariCourse(Parieur * parieur) {
+bool pariCourse(Parieur * parieur) {
 	printf("%s, sur quel chameau veux tu parier ?\n", parieur->nom);
+	printf("\t - Retour, ne pas parier (0)\n");
 	for(int i = 0; i < NB_COULEUR; ++i)
 		printf("\t - Chameau %-6s (%d) %s\n", couleurs[i], i+1, parieur->tuilesPariCourse[i] ? "" : "(Indisponible)");
 	printf("Ton choix : ");
 	int choix;
 	// Tant que saisie incohérente          ou     hors des bornes             ou qu'il n'y a plus de tuiles
-	while(scanf_s("%d", &choix) == 0 || choix < 1 || choix > NB_COULEUR || !parieur->tuilesPariCourse[choix-1]) {
+	while(scanf_s("%d", &choix) == 0 || choix < 0 || choix > NB_COULEUR || !parieur->tuilesPariCourse[choix-1]) {
 		printf("Choix invalide, choisis une tuile parmi les disponibles : ");
 		clearInputBuffer();
 	}
 	fgetc(stdin); // Traiter le '\n' restant
+	if(choix == 0) return false; // Action de retour
 	--choix; // On enlève 1 à choix, car l'utilisateur a saisi entre 1 et 5 et on veut entre 0 et 4
 	printf("Penses-tu que le chameau %s va gagner ou perdre la course?\n", couleurs[choix]);
 	printf("Ton choix (G/P) : ");
@@ -252,6 +280,7 @@ void pariCourse(Parieur * parieur) {
 	};
 	parisCourse[nbParisCourse++] = pc;
 	printf("Pari de course de %s enregistré\n", parieur->nom);
+	return true; // On confirme que l'action a bien été faite
 }
 
 /**
@@ -260,6 +289,7 @@ void pariCourse(Parieur * parieur) {
  * @return true si la position est valide, faux sinon
  */
 bool validePositionDesert(int position, Parieur * parieur) {
+	if(position == -1) return true; // Action de retour, pas besoin de vérifier
 	if(position == 0 || position > 15) return false; // On ne peut pas poser en 1 ni au dela du plateau
 	for(int i = 0; i < nbJoueurs; ++i) { // On teste les contraintes avec toutes les tuiles en place
 		if(&parieurs[i] == parieur) continue; // On ne vérifie pas sa propre tuile
@@ -276,9 +306,11 @@ bool validePositionDesert(int position, Parieur * parieur) {
 /**
  * Permet à un joueur déplacer sa tuile désert
  * @param parieur le joueur qui pose sa tuile
+ * @return vrai si l'action a été effectuée, faux sinon
  */
-void placerTuileDesert(Parieur * parieur) {
+bool placerTuileDesert(Parieur * parieur) {
 	printf("%s, où souhaites-tu placer ta tuile désert ?\n", parieur->nom);
+	printf("Fais 0 pour revenir au menu précédent et ne pass (dé)placer la tuile\n");
 	printf("Ton choix : ");
 	int choixPosition;
 	while(scanf_s("%d", &choixPosition) == 0 || !validePositionDesert(choixPosition-1, parieur)) {
@@ -286,6 +318,7 @@ void placerTuileDesert(Parieur * parieur) {
 		clearInputBuffer();
 	}
 	fgetc(stdin); // On traite le \n restant du buffer
+	if(choixPosition == 0) return false;
 	choixPosition--; // Comme d'hab
 	parieur->tuileDesert.position = choixPosition;
 	printf("De quel côté veux-tu placer ta tuile désert ?\n");
@@ -300,6 +333,7 @@ void placerTuileDesert(Parieur * parieur) {
 	// On affecte le côté choisi de la carte
 	parieur->tuileDesert.coteOasis = choixCote == 'O' || choixCote == 'o';
 	printf("Tuile désert placée à la position %d sur le côté %s!\n", parieur->tuileDesert.position+1, parieur->tuileDesert.coteOasis ? "Oasis" : "Mirage");
+	return true; // On confirme que l'action a bien été faite
 }
 
 // ****************************
@@ -312,30 +346,30 @@ void placerTuileDesert(Parieur * parieur) {
  */
 void tour(Parieur * parieur) {
 	printf("C'est au tour de %s!\n", parieur->nom);
-	int action;
+	bool actionEffectuee;
 	do {
-		action = choisirAction();
-	}while(!actionValide(action, parieur));
+		int action = choisirAction(parieur);
+		switch (action) {
+			case 1: // Action de prendre une tuile pyramide
+				prendreTuilePyramide(parieur);
+				actionEffectuee = true;
+				break;
 
-	switch (action) {
-		case 1: // Action de prendre une tuile pyramide
-			prendreTuilePyramide(parieur);
-			break;
+			case 2:
+				actionEffectuee = pariManche(parieur);
+				break;
 
-		case 2:
-			pariManche(parieur);
-			break;
+			case 3:
+				actionEffectuee = pariCourse(parieur);
+				break;
 
-		case 3:
-			pariCourse(parieur);
-			break;
+			case 4:
+				actionEffectuee = placerTuileDesert(parieur);
+				break;
 
-		case 4:
-			placerTuileDesert(parieur);
-			break;
-
-		default: break;
-	}
+			default: actionEffectuee = false; break;
+		}
+	}while(!actionEffectuee);
 }
 
 // **********************************************
@@ -389,6 +423,7 @@ void finManche() {
 				parieurs[i].or += gain;
 			}else { // Pari perdu
 				printf("Perdu (-1 livre égyptienne");
+				--parieurs[i].or;
 			}
 			printf("\n");
 		}
@@ -694,6 +729,49 @@ void afficherPlateau() {
 		else genererCase(i);
 	}
 
+	char * infosJoueurs[8];
+	for(int i = 0; i < 8; ++i) {
+		if(i >= nbJoueurs) {
+			infosJoueurs[i] = malloc(1 * sizeof(char));
+			infosJoueurs[i] = "";
+			continue;
+		}
+		infosJoueurs[i] = malloc(51 * sizeof(char));
+		sprintf(infosJoueurs[i], "%20s : %2dE£ | %d tuile(s) pyramide", parieurs[i].nom, parieurs[i].or, parieurs[i].tuilesPyramide);
+	}
+
+	char * desDansPyramide = malloc(40 * sizeof(char)); // On prendra maximum 40 caractères
+	char * desSortis = malloc(40 * sizeof(char)); // On prendra maximum 40 caractères
+	sprintf(desDansPyramide, "%s%s%s%s%s%s%s%s%s%s",
+			pyramide[0] ? couleurs[0] : "", pyramide[0] ? " " : "",
+			pyramide[1] ? couleurs[1] : "", pyramide[1] ? " " : "",
+			pyramide[2] ? couleurs[2] : "", pyramide[2] ? " " : "",
+			pyramide[3] ? couleurs[3] : "", pyramide[3] ? " " : "",
+			pyramide[4] ? couleurs[4] : "", pyramide[4] ? " " : "");
+	sprintf(desSortis, "%s%s%s%s%s%s%s%s%s%s",
+	        !pyramide[0] ? couleurs[0] : "", !pyramide[0] ? " " : "",
+	        !pyramide[1] ? couleurs[1] : "", !pyramide[1] ? " " : "",
+	        !pyramide[2] ? couleurs[2] : "", !pyramide[2] ? " " : "",
+	        !pyramide[3] ? couleurs[3] : "", !pyramide[3] ? " " : "",
+	        !pyramide[4] ? couleurs[4] : "", !pyramide[4] ? " " : "");
+
+	char * parisActuels[NB_COULEUR];
+	for(int i = 0; i < NB_COULEUR; ++i) {
+		parisActuels[i] = malloc(3 * sizeof(parieurs[0].nom) + 3 * sizeof(char));
+		bool auMoinsUnPari = false;
+		for(int j = 0; j < nbJoueurs; ++j) {
+			Parieur * p = &parieurs[j];
+			for(int k = 0; k < p->nbParisManche; ++k)
+				if(p->parisManche[k].couleur == i) {
+					if(auMoinsUnPari) strcat(parisActuels[i], p->nom);
+					else strcpy(parisActuels[i], p->nom);
+					strcat(parisActuels[i], " ");
+					auMoinsUnPari = true;
+				}
+		}
+		if(!auMoinsUnPari) parisActuels[i] = "Aucun pari";
+	}
+
 	printf(formatPlateau,
 		   // 5 cases en haut du plateau (11 à 15)
 		   casesPlateau[10].lignes[0], casesPlateau[11].lignes[0], casesPlateau[12].lignes[0], casesPlateau[13].lignes[0], casesPlateau[14].lignes[0],
@@ -703,29 +781,30 @@ void afficherPlateau() {
 		   casesPlateau[10].lignes[4], casesPlateau[11].lignes[4], casesPlateau[12].lignes[4], casesPlateau[13].lignes[4], casesPlateau[14].lignes[4],
 
 		   // Cases 10 et 16
-		   casesPlateau[9].lignes[0], casesPlateau[15].lignes[0],
-		   casesPlateau[9].lignes[1], casesPlateau[15].lignes[1],
-		   casesPlateau[9].lignes[2], casesPlateau[15].lignes[2],
-		   casesPlateau[9].lignes[3], casesPlateau[15].lignes[3],
-		   casesPlateau[9].lignes[4], casesPlateau[15].lignes[4],
+		   casesPlateau[9].lignes[0], casesPlateau[15].lignes[0], couleurs[0], tuilesParis[0], parisActuels[0],
+		   casesPlateau[9].lignes[1], casesPlateau[15].lignes[1], couleurs[1], tuilesParis[1], parisActuels[1],
+		   casesPlateau[9].lignes[2], casesPlateau[15].lignes[2], couleurs[2], tuilesParis[2], parisActuels[2],
+		   casesPlateau[9].lignes[3], casesPlateau[15].lignes[3], couleurs[3], tuilesParis[3], parisActuels[3],
+		   casesPlateau[9].lignes[4], casesPlateau[15].lignes[4], couleurs[4], tuilesParis[4], parisActuels[4],
 
 		   // Cases 9 et 1
 		   casesPlateau[8].lignes[0], casesPlateau[0].lignes[0],
 		   casesPlateau[8].lignes[1], casesPlateau[0].lignes[1],
-		   casesPlateau[8].lignes[2], casesPlateau[0].lignes[2],
-		   casesPlateau[8].lignes[3], casesPlateau[0].lignes[3],
-		   casesPlateau[8].lignes[4], casesPlateau[0].lignes[4],
+		   casesPlateau[8].lignes[2], casesPlateau[0].lignes[2], // Infos des joueurs
+		   casesPlateau[8].lignes[3], casesPlateau[0].lignes[3], infosJoueurs[0],
+		   casesPlateau[8].lignes[4], casesPlateau[0].lignes[4], infosJoueurs[1],
+		                                                         infosJoueurs[2],
 
 		   // Cases 8 et 2
-		   casesPlateau[7].lignes[0], casesPlateau[1].lignes[0],
-		   casesPlateau[7].lignes[1], casesPlateau[1].lignes[1],
-		   casesPlateau[7].lignes[2], casesPlateau[1].lignes[2],
-		   casesPlateau[7].lignes[3], casesPlateau[1].lignes[3],
-		   casesPlateau[7].lignes[4], casesPlateau[1].lignes[4],
+		   casesPlateau[7].lignes[0], casesPlateau[1].lignes[0], infosJoueurs[3],
+		   casesPlateau[7].lignes[1], casesPlateau[1].lignes[1], infosJoueurs[4],
+		   casesPlateau[7].lignes[2], casesPlateau[1].lignes[2], infosJoueurs[5],
+		   casesPlateau[7].lignes[3], casesPlateau[1].lignes[3], infosJoueurs[6],
+		   casesPlateau[7].lignes[4], casesPlateau[1].lignes[4], infosJoueurs[7],
 
-		   // 5 Cases du bas (3 à 7)
-		   casesPlateau[6].lignes[0], casesPlateau[5].lignes[0], casesPlateau[4].lignes[0], casesPlateau[3].lignes[0], casesPlateau[2].lignes[0],
-		   casesPlateau[6].lignes[1], casesPlateau[5].lignes[1], casesPlateau[4].lignes[1], casesPlateau[3].lignes[1], casesPlateau[2].lignes[1],
+		   // 5 Cases du bas (3 à 7)                                                                                                              Infos partie
+		   casesPlateau[6].lignes[0], casesPlateau[5].lignes[0], casesPlateau[4].lignes[0], casesPlateau[3].lignes[0], casesPlateau[2].lignes[0], desDansPyramide,
+		   casesPlateau[6].lignes[1], casesPlateau[5].lignes[1], casesPlateau[4].lignes[1], casesPlateau[3].lignes[1], casesPlateau[2].lignes[1], desSortis,
 		   casesPlateau[6].lignes[2], casesPlateau[5].lignes[2], casesPlateau[4].lignes[2], casesPlateau[3].lignes[2], casesPlateau[2].lignes[2],
 		   casesPlateau[6].lignes[3], casesPlateau[5].lignes[3], casesPlateau[4].lignes[3], casesPlateau[3].lignes[3], casesPlateau[2].lignes[3],
 		   casesPlateau[6].lignes[4], casesPlateau[5].lignes[4], casesPlateau[4].lignes[4], casesPlateau[3].lignes[4], casesPlateau[2].lignes[4]
