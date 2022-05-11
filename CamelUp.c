@@ -30,6 +30,8 @@ Chameau chameaux[NB_COULEUR]; // Déclaration des chameaux
 Parieur * parieurs; // Pointeur sur Parieur (tableau dynamique contenant les joueurs)
 PariCourse * parisCourse; // Tableau de pointeurs sur PariCourse (tableau pas encore alloué qui contiendra les paris de course de la partie)
 int nbParisCourse;
+int nbParisCourseVictoire;
+int nbParisCourseDefaite;
 Case casesPlateau[TAILLE_PLATEAU];
 
 // ************************************************
@@ -254,7 +256,7 @@ bool pariCourse(Parieur * parieur) {
 	printf("Ton choix : ");
 	int choix;
 	// Tant que saisie incohérente          ou     hors des bornes             ou qu'il n'y a plus de tuiles
-	while(scanf_s("%d", &choix) == 0 || choix < 0 || choix > NB_COULEUR || !parieur->tuilesPariCourse[choix-1]) {
+	while(scanf_s("%d", &choix) == 0 || choix < 0 || choix > NB_COULEUR || (choix != 0 && !parieur->tuilesPariCourse[choix-1])) {
 		printf("Choix invalide, choisis une tuile parmi les disponibles : ");
 		clearInputBuffer();
 	}
@@ -279,6 +281,7 @@ bool pariCourse(Parieur * parieur) {
 		.victorieux = choixGagnerPerdre == 'G' || choixGagnerPerdre == 'g'
 	};
 	parisCourse[nbParisCourse++] = pc;
+	pc.victorieux ? ++nbParisCourseVictoire : ++nbParisCourseDefaite;
 	printf("Pari de course de %s enregistré\n", parieur->nom);
 	return true; // On confirme que l'action a bien été faite
 }
@@ -736,8 +739,13 @@ void afficherPlateau() {
 			infosJoueurs[i] = "";
 			continue;
 		}
-		infosJoueurs[i] = malloc(51 * sizeof(char));
-		sprintf(infosJoueurs[i], "%20s : %2dE£ | %d tuile(s) pyramide", parieurs[i].nom, parieurs[i].or, parieurs[i].tuilesPyramide);
+		infosJoueurs[i] = malloc(100 * sizeof(char)); // Taille de la chaine pris à la hausse (approximatif)
+		int nbParisVictoire = 0;
+		int nbParisDefaite = 0;
+		for(int j = 0; j < nbParisCourse; ++j) // Pourrait être un peu plus optimisé si les Parieurs connaissaient leurs propres PariCourse
+			if(parisCourse[j].parieur == &parieurs[i])
+				parisCourse[j].victorieux ? ++nbParisVictoire : ++nbParisDefaite;
+		sprintf(infosJoueurs[i], "%20s : %2dE£ | %d tuile(s) pyramide | %d paris sur victoire, %d sur défaite", parieurs[i].nom, parieurs[i].or, parieurs[i].tuilesPyramide, nbParisVictoire, nbParisDefaite);
 	}
 
 	char * desDansPyramide = malloc(40 * sizeof(char)); // On prendra maximum 40 caractères
@@ -774,13 +782,13 @@ void afficherPlateau() {
 
 	printf(formatPlateau,
 		   // 5 cases en haut du plateau (11 à 15)
-		   casesPlateau[10].lignes[0], casesPlateau[11].lignes[0], casesPlateau[12].lignes[0], casesPlateau[13].lignes[0], casesPlateau[14].lignes[0],
-		   casesPlateau[10].lignes[1], casesPlateau[11].lignes[1], casesPlateau[12].lignes[1], casesPlateau[13].lignes[1], casesPlateau[14].lignes[1],
-		   casesPlateau[10].lignes[2], casesPlateau[11].lignes[2], casesPlateau[12].lignes[2], casesPlateau[13].lignes[2], casesPlateau[14].lignes[2],
+		   casesPlateau[10].lignes[0], casesPlateau[11].lignes[0], casesPlateau[12].lignes[0], casesPlateau[13].lignes[0], casesPlateau[14].lignes[0], // Infos sur pari courses
+		   casesPlateau[10].lignes[1], casesPlateau[11].lignes[1], casesPlateau[12].lignes[1], casesPlateau[13].lignes[1], casesPlateau[14].lignes[1], nbParisCourseVictoire,
+		   casesPlateau[10].lignes[2], casesPlateau[11].lignes[2], casesPlateau[12].lignes[2], casesPlateau[13].lignes[2], casesPlateau[14].lignes[2], nbParisCourseDefaite,
 		   casesPlateau[10].lignes[3], casesPlateau[11].lignes[3], casesPlateau[12].lignes[3], casesPlateau[13].lignes[3], casesPlateau[14].lignes[3],
 		   casesPlateau[10].lignes[4], casesPlateau[11].lignes[4], casesPlateau[12].lignes[4], casesPlateau[13].lignes[4], casesPlateau[14].lignes[4],
 
-		   // Cases 10 et 16
+		   // Cases 10 et 16                                      Info des paris de manche
 		   casesPlateau[9].lignes[0], casesPlateau[15].lignes[0], couleurs[0], tuilesParis[0], parisActuels[0],
 		   casesPlateau[9].lignes[1], casesPlateau[15].lignes[1], couleurs[1], tuilesParis[1], parisActuels[1],
 		   casesPlateau[9].lignes[2], casesPlateau[15].lignes[2], couleurs[2], tuilesParis[2], parisActuels[2],

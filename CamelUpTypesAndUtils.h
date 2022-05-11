@@ -13,8 +13,8 @@
  */
 const char * formatPlateau = "                             __________________________________________________\n"
                              "                            /%9s/%9s/%9s/%9s/%9s/\n"
-                             "                           /%9s/%9s/%9s/%9s/%9s/\n"
-                             "                          /%9s/%9s/%9s/%9s/%9s/\n"
+                             "                           /%9s/%9s/%9s/%9s/%9s/ Nombre de paris sur  défaite à la course : %d\n"
+                             "                          /%9s/%9s/%9s/%9s/%9s/  Nombre de paris sur victoire à la course : %d\n"
                              "                         /%9s/%9s/%9s/%9s/%9s/\n"
                              "                        /%9s/%9s/%9s/%9s/%9s/   Infos sur les paris manche :\n"
                              "                       /---------/-----------------------------/---------/             Dispos | En cours\n"
