@@ -61,7 +61,7 @@ bool actionValide(int action, Parieur * parieur) {
 		}
 		case 4: { // Valide s'il y a au moins une case où on peut poser la tuile (normalement toujours le cas mais on sait jamais)
 			for(int i = 1; i < TAILLE_PLATEAU; ++i) // Si au moins une case est dispo, on valide
-				if(validePositionDesert(i, parieur)) return true;
+				if(validePositionDesert(i)) return true;
 			return false;
 		}
 		default: return false;
@@ -291,7 +291,7 @@ bool pariCourse(Parieur * parieur) {
  * @param position la position demandée pour la tuile désert
  * @return true si la position est valide, faux sinon
  */
-bool validePositionDesert(int position, Parieur * parieur) {
+bool validePositionDesert(int position) {
 	if(position == -1) return true; // Action de retour, pas besoin de vérifier
 	if(position == 0 || position > 15) return false; // On ne peut pas poser en 1 ni au dela du plateau
 	for(int i = 0; i < nbJoueurs; ++i) { // On teste les contraintes avec toutes les tuiles en place
@@ -315,7 +315,7 @@ bool placerTuileDesert(Parieur * parieur) {
 	printf("Fais 0 pour revenir au menu précédent et ne pass (dé)placer la tuile\n");
 	printf("Ton choix : ");
 	int choixPosition;
-	while(scanf_s("%d", &choixPosition) == 0 || !validePositionDesert(choixPosition-1, parieur)) {
+	while(scanf_s("%d", &choixPosition) == 0 || !validePositionDesert(choixPosition-1)) {
 		printf("Position invalide, choisis une position valide : ");
 		clearInputBuffer();
 	}

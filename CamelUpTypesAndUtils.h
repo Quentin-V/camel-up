@@ -221,6 +221,6 @@ const char * actionError[4] = {
 };
 
 void afficherPlateau();
-bool validePositionDesert(int position, Parieur * parieur);
+bool validePositionDesert(int position);
 
 #endif //CAMELUP_CAMELUPTYPESANDUTILS_H
