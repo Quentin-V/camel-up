@@ -60,9 +60,9 @@ bool actionValide(int action, Parieur * parieur) {
 			return nbParisJoueur != 5;
 		}
 		case 4: { // Valide s'il y a au moins une case où on peut poser la tuile (normalement toujours le cas mais on sait jamais)
-			for(int i = 0; i < TAILLE_PLATEAU; ++i)
-				if(!validePositionDesert(i, NULL)) return false; // On vérifie la case et on ignore le joueur sinon on pourrait avoir un faux positif
-			return true;
+			for(int i = 1; i < TAILLE_PLATEAU; ++i) // Si au moins une case est dispo, on valide
+				if(validePositionDesert(i, parieur)) return true;
+			return false;
 		}
 		default: return false;
 	}
@@ -295,7 +295,6 @@ bool validePositionDesert(int position, Parieur * parieur) {
 	if(position == -1) return true; // Action de retour, pas besoin de vérifier
 	if(position == 0 || position > 15) return false; // On ne peut pas poser en 1 ni au dela du plateau
 	for(int i = 0; i < nbJoueurs; ++i) { // On teste les contraintes avec toutes les tuiles en place
-		if(&parieurs[i] == parieur) continue; // On ne vérifie pas sa propre tuile
 		TuileDesert tuileDesert = parieurs[i].tuileDesert;
 		if(tuileDesert.position == -1) continue; // Tuile pas posée
 		// Si on pose dans une case adjascente à la tuile en place (position-1 <= tuileDesert.position <= position+1)
